@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+{% load widget_tweaks %}
+{% block content %}
+
+<style>
+/* Champs de formulaire esthétiques */
+.form-control {
+    border-radius: 0.5rem;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
+    padding: 0.6rem 0.75rem;
+    transition: all 0.3s ease;
+}
+.form-control:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.2rem rgba(13,110,253,0.25);
+}
+label {
+    font-weight: 500;
+    color: #495057;
+}
+.formset-form {
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+.formset-form:hover {
+    transform: scale(1.01);
+    box-shadow: 0 0 15px rgba(0,0,0,0.1);
+}
+/* Bouton supprimer produit */
+.remove-form i {
+    font-size: 0.85rem;
+}
+.formset-form .form-label {
+    font-weight: 500;
+}
+/* Animation fade-in */
+.fade-in {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+.fade-in.show {
+    opacity: 1;
+}
+</style>
+
+<div class="container my-5">
+    <!-- Titre -->
+    <div class="text-center mb-5">
+        <h2 class="fw-bold display-6">Création d’un devis</h2>
+        <p class="text-muted">Remplissez les informations et ajoutez les produits</p>
+    </div>
+
+    <!-- Formulaire -->
+    <form method="post" class="needs-validation" novalidate>
+        {% csrf_token %}
+
+        <!-- Partie Devis -->
+        <div class="card mb-4 shadow-lg border-0 rounded-4">
+            <div class="card-header bg-primary text-white fs-5">Informations du devis</div>
+            <div class="card-body">
+                <div class="row g-3">
+                    {% for field in devis_form %}
+                    <div class="col-md-6">
+                        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                        {{ field|add_class:"form-control" }}
+                        {% if field.errors %}
+                        <div class="text-danger small">{{ field.errors }}</div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Partie Produits -->
+        <div class="card mb-4 shadow-lg border-0 rounded-4">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center fs-5">
+                <span>Produits</span>
+                <button type="button" class="btn btn-success btn-sm" id="add-form">
+                    <i class="bi bi-plus-circle"></i>
+                    Ajouter un produit
+                </button>
+            </div>
+            <div class="card-body" id="formset-area">
+                {{ formset.management_form }}
+                {% for form in formset %}
+                <div class="formset-form border p-4 mb-3 rounded-4 shadow-sm position-relative bg-white fade-in show">
+                    <div class="d-flex align-items-center mb-3">
+                        <i class="bi bi-box-seam me-2 fs-4 text-primary"></i>
+                        <h6 class="mb-0 fw-bold">Produit</h6>
+                    </div>
+                    {% for field in form %}
+                        {% if field.name != "id" and field.name != "DELETE" %}
+                        <div class="mb-3">
+                            <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                            {{ field|add_class:"form-control" }}
+                        </div>
+                        {% endif %}
+                    {% endfor %}
+                    <button type="button" class="btn btn-danger btn-sm remove-form position-absolute top-0 end-0 m-2" title="Supprimer ce produit">
+                        <i class="bi bi-trash-fill"></i>
+                    </button>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Template invisible pour un nouveau produit -->
+            <div id="empty-product-template" style="display: none;">
+                <div class="formset-form border p-4 mb-3 rounded-4 shadow-sm position-relative bg-white fade-in">
+                    <div class="d-flex align-items-center mb-3">
+                        <i class="bi bi-box-seam me-2 fs-4 text-primary"></i>
+                        <h6 class="mb-0 fw-bold">Nouveau produit</h6>
+                    </div>
+                    {% for field in formset.empty_form %}
+                        {% if field.name != "id" and field.name != "DELETE" %}
+                        <div class="mb-3">
+                            <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                            {{ field|add_class:"form-control" }}
+                        </div>
+                        {% endif %}
+                    {% endfor %}
+                    <button type="button" class="btn btn-danger btn-sm remove-form position-absolute top-0 end-0 m-2" title="Supprimer ce produit">
+                        <i class="bi bi-trash-fill"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bouton sauvegarde -->
+        <div class="text-center mb-5">
+            <button type="submit" class="btn btn-primary btn-lg px-5 shadow-sm">
+                <i class="bi bi-save2"></i>
+                Enregistrer le devis
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Script pour gérer l’ajout/suppression dynamique -->
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const formsetArea = document.getElementById("formset-area");
+    const addButton = document.getElementById("add-form");
+    const totalForms = document.getElementById("id_form-TOTAL_FORMS");
+    const template = document.getElementById("empty-product-template").innerHTML;
+
+    function activateRemoveButtons() {
+        formsetArea.querySelectorAll(".remove-form").forEach(btn => {
+            btn.onclick = () => {
+                const formDiv = btn.closest(".formset-form");
+                formDiv.remove();
+                updateTotalForms();
+            };
+        });
+    }
+
+    function updateTotalForms() {
+        const forms = formsetArea.querySelectorAll(".formset-form");
+        totalForms.value = forms.length;
+        forms.forEach((form, index) => {
+            form.querySelectorAll("input, select, textarea").forEach(el => {
+                const name = el.name.replace(/__prefix__|-(\d+)-/, `-${index}-`);
+                el.name = name;
+                el.id = "id_" + name;
+            });
+        });
+    }
+
+    addButton.addEventListener("click", () => {
+        const currentForms = parseInt(totalForms.value);
+        const wrapper = document.createElement("div");
+        wrapper.innerHTML = template;
+        const newForm = wrapper.firstElementChild;
+
+        // Reset values
+        newForm.querySelectorAll("input, select, textarea").forEach(el => {
+            const name = el.name.replace(/__prefix__|-(\d+)-/, `-${currentForms}-`);
+            el.name = name;
+            el.id = "id_" + name;
+            if (el.type !== "hidden") el.value = "";
+            if (el.type === "checkbox" || el.type === "radio") el.checked = false;
+        });
+
+        formsetArea.appendChild(newForm);
+
+        // Fade-in effect
+        setTimeout(() => newForm.classList.add("show"), 10);
+
+        totalForms.value = currentForms + 1;
+        activateRemoveButtons();
+    });
+
+    activateRemoveButtons();
+});
+</script>
+
+{% endblock %}

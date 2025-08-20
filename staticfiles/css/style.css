@@ -1,0 +1,48 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 40px;
+    color: #333;
+}
+.header, .footer {
+    text-align: center;
+}
+.header h1 {
+    margin-bottom: 5px;
+}
+.company-info {
+    text-align: right;
+}
+.section {
+    margin-top: 40px;
+}
+.section h2 {
+    border-bottom: 1px solid #ccc;
+    padding-bottom: 5px;
+}
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+}
+table th, table td {
+    border: 1px solid #999;
+    padding: 10px;
+    text-align: left;
+}
+table th {
+    background-color: #eee;
+}
+.total {
+    text-align: right;
+    margin-top: 20px;
+}
+.signature {
+    margin-top: 60px;
+    display: flex;
+    justify-content: space-between;
+}
+.signature div {
+    width: 45%;
+    text-align: center;
+}
+

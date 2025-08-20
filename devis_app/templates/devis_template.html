@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="fr">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Proposition commerciale - Proforma</title>
+        <style>
+            @page { size: A4; margin: 15mm; }
+            body {
+                font-family: Arial, Helvetica, sans-serif;
+                font-size: 12px;
+                color: #000;
+                margin: 0;
+            }
+            .page {
+                width: 210mm;
+                min-height: 297mm;
+                margin: 0 auto;
+                padding: 15mm;
+                background: #fff;
+                box-sizing: border-box;
+            }
+            .header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                border-bottom: 4px solid #000;
+                padding-bottom: 12px;
+                margin-bottom: 6px;
+            }
+            .header-text {
+                font-size: 11px;
+                font-weight: bold;
+                text-transform: uppercase;
+                letter-spacing: .2px;
+                text-align: right;
+            }
+            .header-logo img {
+                height: 100px;
+                width: auto;
+            }
+            .doc-info {
+                margin-top: 10px;
+                background: #000;
+                color: #fff;
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                padding: 10px 14px;
+                font-size: 14px;
+                font-weight: bold;
+            }
+            .doc-info div:last-child { text-align: right; }
+            .parties {
+                display: flex;
+                gap: 15px;
+                margin-top: 12px;
+                align-items: flex-start;
+            }
+            .box {
+                border: 1px solid #000;
+                padding: 10px 12px;
+                min-height: 100px;
+                flex: 1;
+                line-height: 1.6;
+                background-color: #fff;
+            }
+            .box.client { flex: 2; }
+            .box.conseiller { flex: 1.5; }
+            .box-title {
+                font-weight: bold;
+                display:block;
+                margin-bottom: 8px;
+                text-decoration: underline;
+            }
+            .box.client .box-title,
+            .box.conseiller .box-title {
+                background-color: #f0f0f0;
+                margin: -10px -12px 8px -12px;
+                padding: 6px 12px;
+                display: block;
+                width: calc(100% + 24px);
+                box-sizing: border-box;
+                text-align: left;
+            }
+            .qr-wrapper {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: flex-start;
+                margin-left: 20px;
+            }
+            .qr-wrapper img {
+                width: 115px;
+                height: 115px;
+                object-fit: cover;
+                border: 1px solid #000;
+                padding: 2px;
+                background: #fff;
+            }
+            .qr-code {
+                margin-top: 8px;
+                font-size: 11px;
+                font-weight: bold;
+                text-align: center;
+                letter-spacing: .3px;
+            }
+            .info-block {
+                display: flex;
+                justify-content: space-between;
+                margin-top: 10px;
+                background-color: #f0f0f0;
+                padding: 8px 14px;
+            }
+            .info-block p {
+                margin: 0 15px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="page">
+            <!-- Header -->
+            <div class="header">
+                <div class="header-logo">
+                    <img src="logo.png" alt="Logo de l'entreprise" />
+                </div>
+                <div class="header-text">
+                    ENERGIE VERTE – LABORATOIRE R&D - FORMATION – AUDIT & CONSEILS – IMPORT/EXPORT
+                </div>
+            </div>
+
+            <!-- Infos document dynamiques -->
+            <div class="doc-info">
+                <div>Proposition commerciale N° {{ devis.numero_devis }}</div>
+                <div>Émise en date du {{ devis.date_emission|date:"d/m/Y" }}</div>
+            </div>
+
+            <!-- Parties -->
+            <div class="parties">
+                <div class="box client">
+                    <span class="box-title">Client</span>
+                    <p>Nom: {{ devis.client.nom }} {{ devis.client.prenom }}</p>
+                    <p>Email: {{ devis.client.email }}</p>
+                    <p>Adresse: ________________________</p>
+                </div>
+                <div class="box conseiller">
+                    <span class="box-title">Votre conseiller commercial</span>
+                    <p>Point de vente: _______________</p>
+                    <p>Mobile: ______________________</p>
+                    <p>Email: _______________________</p>
+                </div>
+                <div class="qr-wrapper">
+                    {% if devis.qr_code %}
+                    <img src="{{ devis.qr_code.url }}" alt="QR Code" />
+                    {% else %}
+                    <img src="qrcode.png" alt="QR Code" />
+                    {% endif %}
+                    <div class="qr-code">CODE: {{ devis.numero_devis }}</div>
+                </div>
+            </div>
+
+            <!-- Infos Proforma -->
+            <div class="info-block">
+                <p>
+                    <strong>Date de la proforma:</strong>
+                    {{ devis.date_proforma|date:"d/m/Y" }}
+                </p>
+                <p>
+                    <strong>Régime de vente:</strong>
+                    {{ devis.regime_vente }}
+                </p>
+                <p>
+                    <strong>Date de validité:</strong>
+                    {{ devis.date_validite|date:"d/m/Y" }}
+                </p>
+            </div>
+<h2 style="display:flex; align-items:flex-start; margin-top:20px;">
+    <span style="font-weight:bold;">DÉTAIL DE LA PROPOSITION :</span>
+    {% if devis.detail_proposition %}
+    <span style="margin-left:10px; font-weight:normal; white-space: pre-line;">
+        {{ devis.detail_proposition }}
+    </span>
+    {% else %}
+    <span style="flex-grow:1; border-bottom:1px solid #000; margin-left:10px;"></span>
+    {% endif %}
+</h2>
+
+
+            <!-- Tableau des lignes -->
+            <table style="width: 100%; border-collapse: collapse; margin-top: 15px; text-align: left; font-size: 12px;">
+                <thead>
+                    <tr style="background-color: #f2f2f2;">
+                        <th style="padding: 6px; width: 40%;">Désignation</th>
+                        <th style="padding: 6px; width: 10%;">Qté</th>
+                        <th style="padding: 6px; width: 10%;">Unité</th>
+                        <th style="padding: 6px; width: 15%;">Prix unitaire</th>
+                        <th style="padding: 6px; width: 10%;">Remise</th>
+                        <th style="padding: 6px; width: 10%;">P.U Net</th>
+                        <th style="padding: 6px; width: 15%; text-align: right;">Total TTC</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ligne in lignes %}
+                    <tr>
+                        <td style="padding: 6px; font-weight: bold;">{{ ligne.produit.nom }}</td>
+                        <td style="padding: 6px;">{{ ligne.quantite }}</td>
+                        <td style="padding: 6px;">{{ ligne.unite }}</td>
+                        <td style="padding: 6px;">{{ ligne.pu }} €</td>
+                        <td style="padding: 6px;">{{ ligne.remise }} %</td>
+                        <td style="padding: 6px;">{{ ligne.pu_net }} €</td>
+                        <td style="padding: 6px; text-align: right;">{{ ligne.total_ttc }} €</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <hr style="border: 1px solid black; margin: 10px 0;" />
+
+            <!-- Totaux -->
+            <table style="width: 40%; border-collapse: collapse; font-size: 12px; float: right; text-align: right;">
+                <tr>
+                    <td style="border: 1px solid black; padding: 5px; text-align: left;">Total HT</td>
+                    <td style="border: 1px solid black; padding: 5px;">{{ devis.total_ht }} €</td>
+                </tr>
+                <tr>
+                    <td style="border: 1px solid black; padding: 5px; text-align: left;">Remise</td>
+                    <td style="border: 1px solid black; padding: 5px;">{{ devis.total_remise }} €</td>
+                </tr>
+                <tr>
+                    <td style="border: 1px solid black; padding: 5px; text-align: left; font-weight: bold;">
+                        TOTAL HT REMISE
+                    </td>
+                    <td style="border: 1px solid black; padding: 5px; font-weight: bold;">
+                        {{ devis.total_ht_remise }} €
+                    </td>
+                </tr>
+                <tr>
+                    <td style="border: 1px solid black; padding: 5px; text-align: left;">TVA {{ devis.tva }}%</td>
+                    <td style="border: 1px solid black; padding: 5px;">{{ devis.total_ttc|floatformat:2 }} €</td>
+                </tr>
+                <tr>
+                    <td style="border: 1px solid black; padding: 5px; text-align: left; font-weight: bold;">
+                        TOTAL TTC
+                    </td>
+                    <td style="border: 1px solid black; padding: 5px; font-weight: bold; color: red;">
+                        {{ devis.total_ttc }} €
+                    </td>
+                </tr>
+            </table>
+
+            <p style="margin-top:150px; text-align:left; font-weight:bold;">
+                ARRÊTÉE LA PRÉSENTE PROFORMA A LA SOMME DE
+            </p>
+
+            <p style="text-align:left; font-weight:bold;">
+                *** {{ devis.total_ttc_lettres }} ***
+            </p>
+
+            <div
+                style="border: 1px solid #000; padding: 12px; font-size: 12px; line-height: 1.6; text-align: justify; margin-top:20px;"
+            >
+                <p style="margin:0;">
+                    OFFRE VALABLE DANS LA LIMITE DES STOCKS DISPONIBLES.
+                    <br />
+                    Les prix proposés sont indicatifs et basés sur les indices économiques actuels, incluant des parités
+                    monétaires susceptibles d'évoluer. Les prix définitifs sont ceux en vigueur au jour de la livraison,
+                    en application de l'arrêté MAEF/AE n° 7531 du 31/10/1969. Nos prix indicatifs sont révisables en cas
+                    de modification des tarifs fournisseurs, des taux de fret, des parités de change et de toutes autres
+                    modifications qui pourraient intervenir d'ici la date de livraison.
+                </p>
+            </div>
+
+            <div style="text-align: right; margin-top: 60px;">
+                <p><strong>Responsable Commercial</strong></p>
+                <br />
+                <br />
+                <p><strong>Signature et cachet</strong></p>
+            </div>
+
+            <hr style="border: 1px solid black; margin: 70px 0 0 0;" />
+
+            <div class="footer" style="margin-top:0; font-size:11px; text-align:center; line-height:1.5;">
+                Siège Social: Les Rosiers, Cocoteraie 3 Villa N°547 – Grand-Bassam – Cote d’Ivoire | Contact : +225 27
+                21 51 47 54 / 07 03 93 91 04 | info@pwaenergysolution.com / www.pwaenergysolution.com | SARL au capital
+                de 15.000.000 inscrites au RC : CI-ABJ-2018-B-29366 - CC : 1859574 F / CNPS : 334258 | Banque (NSIA): CI
+                042 01229 065230402001 62
+            </div>
+        </div>
+    </body>
+</html>

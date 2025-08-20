@@ -1,0 +1,78 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 30px;
+    color: #000;
+}
+
+.header {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.header h2 {
+    font-size: 16px;
+    text-transform: uppercase;
+}
+
+.info-section {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+.details {
+    margin: 15px 0;
+}
+
+h3 {
+    text-align: center;
+    margin: 20px 0 10px;
+    text-decoration: underline;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 15px;
+}
+
+table, th, td {
+    border: 1px solid #333;
+}
+
+th, td {
+    padding: 8px;
+    text-align: center;
+    font-size: 13px;
+}
+
+.totals {
+    text-align: right;
+    margin-top: 10px;
+}
+
+.arrete {
+    margin: 20px 0;
+    text-align: center;
+    font-weight: bold;
+}
+
+.conditions {
+    font-size: 12px;
+    margin-top: 15px;
+    text-align: justify;
+}
+
+.signature {
+    margin-top: 50px;
+    text-align: center;
+    font-weight: bold;
+}
+
+.footer {
+    margin-top: 40px;
+    font-size: 11px;
+    text-align: center;
+    border-top: 1px solid #999;
+    padding-top: 10px;
+}

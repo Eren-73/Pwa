@@ -1,9 +1,7 @@
-
-from django.contrib import admin
 from django.urls import path
-
-from devis_app import views
+from . import views
 
 urlpatterns = [
-  path('', views.home, name= "index")
-]
+    path('creer/', views.creer_devis, name='creer_devis'),
+    path('facture/<int:pk>/', views.imprimer_devis, name='imprimer_devis'),
+    ]
