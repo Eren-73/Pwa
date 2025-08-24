@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">Ajouter un Client</h2>
+    <form method="POST" class="shadow p-4 rounded bg-light">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label class="form-label">Nom</label>
+            {{ form.nom }}
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Email</label>
+            {{ form.email }}
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Téléphone</label>
+            {{ form.telephone }}
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Adresse</label>
+            {{ form.adresse }}
+        </div>
+        <button type="submit" class="btn btn-success">Enregistrer</button>
+    </form>
+</div>
+{% endblock %}

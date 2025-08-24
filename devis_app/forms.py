@@ -1,5 +1,5 @@
 from django import forms
-from .models import Devis, LigneDevis
+from .models import Devis, LigneDevis,Client
 
 class DevisForm(forms.ModelForm):
     class Meta:
@@ -10,3 +10,9 @@ class LigneDevisForm(forms.ModelForm):
     class Meta:
         model = LigneDevis
         fields = ['produit', 'quantite', 'unite', 'remise']
+
+
+class ClientForm(forms.ModelForm):
+    class Meta:
+        model = Client
+        fields = ["nom", "email", "telephone", "adresse"]  # 🔹 Ajout adresse

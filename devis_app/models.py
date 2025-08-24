@@ -4,7 +4,7 @@ from django.utils.text import slugify
 from datetime import timedelta
 import uuid
 
-from .utils import nombre_en_lettres, generate_qr_code
+from .utils import  generate_qr_code,nombre_en_lettres
 from decimal import Decimal
 
 class Categorie(models.Model):
@@ -27,6 +27,9 @@ class Client(models.Model):
     nom = models.CharField(max_length=100)
     prenom = models.CharField(max_length=100)
     email = models.EmailField()
+    telephone = models.CharField(max_length=20, blank=True, null=True)
+    adresse = models.CharField(max_length=255, blank=True, null=True)
+    date_creation = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f"{self.prenom} {self.nom}"

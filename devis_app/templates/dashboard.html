@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard Devis{% endblock %}
+
+{% block content %}
+<h1 class="mb-4">Dashboard Devis</h1>
+
+<!-- Bouton Créer un devis -->
+<div class="mb-4">
+    <a href="{% url 'creer_devis' %}" class="btn btn-primary">➕ Créer un devis</a>
+</div>
+
+<!-- Filtre par date -->
+<form method="get" class="row g-3 mb-4">
+    <div class="col-auto">
+        <input type="date" name="date_debut" class="form-control" placeholder="Date début">
+    </div>
+    <div class="col-auto">
+        <input type="date" name="date_fin" class="form-control" placeholder="Date fin">
+    </div>
+    <div class="col-auto">
+        <button type="submit" class="btn btn-primary mb-3">Filtrer</button>
+    </div>
+</form>
+
+<!-- Liste des devis -->
+<h2 class="mb-3">Liste des devis</h2>
+<div class="row">
+    {% for devis in devis_list %}
+    <div class="col-md-4">
+        <div class="card card-devis shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title">Devis {{ devis.numero_devis }}</h5>
+                <p class="card-text">
+                    <strong>Client :</strong> {{ devis.client }}<br>
+                    <strong>Date :</strong> {{ devis.date_emission }}<br>
+                    <strong>Total TTC :</strong> {{ devis.total_ttc }}
+                </p>
+                <a href="{% url 'imprimer_devis' devis.pk %}" class="btn btn-success">Voir facture</a>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <p>Aucun devis trouvé.</p>
+    {% endfor %}
+</div>
+{% endblock %}
