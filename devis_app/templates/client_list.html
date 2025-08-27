@@ -1,28 +1,80 @@
 {% extends "base.html" %}
+
 {% block content %}
 <h2>Liste des Clients</h2>
-<a href="{% url 'add_client' %}" class="btn btn-primary">+ Ajouter un client</a>
 
-<table class="table table-striped mt-3">
-    <thead>
-        <tr>
-            <th>Nom</th>
-            <th>Email</th>
-            <th>Téléphone</th>
-            <th>Adresse</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for client in clients %}
-        <tr>
-            <td>{{ client.nom }}</td>
-            <td>{{ client.email }}</td>
-            <td>{{ client.telephone }}</td>
-            <td>{{ client.adresse }}</td>
-        </tr>
-        {% empty %}
-        <tr><td colspan="4">Aucun client enregistré.</td></tr>
-        {% endfor %}
-    </tbody>
-</table>
+<!-- Formulaire pour les actions sur les clients sélectionnés -->
+<form method="post" id="clientsForm">
+    {% csrf_token %}
+
+    <!-- Boutons Ajouter, Modifier, Supprimer -->
+    <div class="mb-3 d-flex gap-2">
+        <a href="{% url 'add_client' %}" class="btn btn-primary">➕ Ajouter</a>
+        <button type="submit" formaction="{% url 'edit_client_bulk' %}" class="btn btn-warning">✏️ Modifier</button>
+        <!-- Bouton Supprimer ouvre le modal -->
+        <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#confirmDeleteModal">
+            🗑 Supprimer
+        </button>
+    </div>
+
+    <!-- Tableau des clients avec cases à cocher -->
+    <table class="table table-striped mt-3">
+        <thead>
+            <tr>
+                <th><input type="checkbox" id="selectAll" onclick="toggleAll(this)"></th>
+                <th>Nom</th>
+                <th>Email</th>
+                <th>Téléphone</th>
+                <th>Adresse</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for client in clients %}
+            <tr>
+                <td><input type="checkbox" name="selected_clients" value="{{ client.id }}"></td>
+                <td>{{ client.nom }}</td>
+                <td>{{ client.email }}</td>
+                <td>{{ client.telephone }}</td>
+                <td>{{ client.adresse }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5" class="text-center">Aucun client enregistré.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</form>
+
+<!-- Modal de confirmation pour la suppression -->
+<div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-labelledby="confirmDeleteModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="confirmDeleteModalLabel">Confirmer la suppression</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+      </div>
+      <div class="modal-body">
+        Êtes-vous sûr de vouloir supprimer les clients sélectionnés ?
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+        <button type="button" class="btn btn-danger" onclick="document.getElementById('clientsForm').submit();">
+          Oui, supprimer
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Fonction pour sélectionner/désélectionner tous les clients
+function toggleAll(source) {
+    let checkboxes = document.querySelectorAll('input[name="selected_clients"]');
+    checkboxes.forEach(cb => cb.checked = source.checked);
+}
+</script>
+
+{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 {% endblock %}

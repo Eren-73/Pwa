@@ -97,3 +97,24 @@ def ajouter_client(request):
             nom=nom, prenom=prenom, email=email, telephone=telephone, adresse=adresse
         )
         return redirect('liste_clients')
+
+def modifier_client(request, pk):
+    client = get_object_or_404(Client, pk=pk)
+    if request.method == 'POST':
+        form = ClientForm(request.POST, instance=client)
+        if form.is_valid():
+            form.save()
+            return redirect('liste_clients')
+    else:
+        form = ClientForm(instance=client)
+    return render(request, 'modifier_client.html', {'form': form, 'client': client})
+
+
+def supprimer_client(request, pk):
+    client = get_object_or_404(Client, pk=pk)
+    if request.method == 'POST':
+        client.delete()
+        print("Client supprimé")
+        # Redirection avec paramètre GET pour indiquer suppression
+        return redirect('/clients/?deleted=1')
+
