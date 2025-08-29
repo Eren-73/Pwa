@@ -59,7 +59,12 @@
             <tbody>
                 {% for client in clients %}
                 <tr>
-                    <td>{{ client.nom }}</td>
+                    <!-- 🔹 Nom cliquable qui envoie vers la page devis du client -->
+                    <td>
+                        <a href="{% url 'devis_par_client' client.id %}" class="text-primary">
+                           {{ client.nom }}
+                        </a>
+                    </td>
                     <td>{{ client.prenom }}</td>
                     <td>{{ client.email }}</td>
                     <td>{{ client.telephone }}</td>
@@ -132,6 +137,7 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    // Gestion modal suppression
     var deleteModal = document.getElementById('deleteModal');
     deleteModal.addEventListener('show.bs.modal', function (event) {
         var button = event.relatedTarget;
@@ -141,7 +147,7 @@ document.addEventListener('DOMContentLoaded', function () {
         var form = deleteModal.querySelector('#deleteForm');
 
         modalTitle.textContent = clientNom;
-        form.action = '/clients/' + clientId + '/supprimer/'; // <-- très important
+        form.action = '/clients/' + clientId + '/supprimer/';
     });
 
     // Afficher le toast après suppression via paramètre GET
@@ -153,5 +159,4 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 });
 </script>
-
 {% endblock %}

@@ -4,6 +4,8 @@ from .forms import DevisForm, LigneDevisForm,ClientForm
 from django.forms import modelformset_factory
 from django.urls import reverse
 from .utils import generate_qr_code
+from django.http import JsonResponse
+
 
 def creer_devis(request):
     LigneDevisFormSet = modelformset_factory(
@@ -26,10 +28,10 @@ def creer_devis(request):
 
             # ⚡ Utiliser l'IP locale de ton PC pour que le téléphone y accède
             current_site_ip = "192.168.1.68"
-            devis_url = f"http://{current_site_ip}:8000{reverse('imprimer_devis', args=[devis.pk])}"
+            devis_url = f"http://{current_site_ip}:8000{reverse('devis_template ', args=[devis.pk])}"
             print("URL générée pour QR:", devis_url)
 
-            print(reverse('imprimer_devis', args=[13])) 
+            print(reverse('devis_template ', args=[13])) 
 
             # Générer et enregistrer le QR code
             print("Lien dans le QR :", devis_url)
@@ -41,7 +43,7 @@ def creer_devis(request):
 
 
 
-            return redirect('imprimer_devis', pk=devis.pk)
+            return redirect('devis_template ', pk=devis.pk)
 
     else:  # GET
         devis_form = DevisForm()
@@ -52,7 +54,7 @@ def creer_devis(request):
         'formset': formset
     })
 
-def imprimer_devis(request, pk):
+def devis_template (request, pk):
     devis = get_object_or_404(Devis, pk=pk)
     lignes = devis.lignes.all()
     
@@ -117,4 +119,19 @@ def supprimer_client(request, pk):
         print("Client supprimé")
         # Redirection avec paramètre GET pour indiquer suppression
         return redirect('/clients/?deleted=1')
+    
+def devis_par_client(request, pk):
+    client = get_object_or_404(Client, pk=pk)
+    devis_list = Devis.objects.filter(client=client)  # tous les devis liés à ce client
+    return render(request, 'devis_par_client.html', {
+        'client': client,
+        'devis_list': devis_list
+    })
 
+def detail_devis(request, devis_id):
+    devis = get_object_or_404(Devis, id=devis_id)
+    lignes = devis.lignes.all()
+    return render(request, "devis_template.html", {
+        "devis": devis,
+        "lignes": lignes
+    })

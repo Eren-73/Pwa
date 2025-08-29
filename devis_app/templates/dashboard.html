@@ -36,7 +36,7 @@
                     <strong>Date :</strong> {{ devis.date_emission }}<br>
                     <strong>Total TTC :</strong> {{ devis.total_ttc }}
                 </p>
-                <a href="{% url 'imprimer_devis' devis.pk %}" class="btn btn-success">Voir facture</a>
+                <a href="{% url 'devis_template ' devis.pk %}" class="btn btn-success">Voir facture</a>
             </div>
         </div>
     </div>

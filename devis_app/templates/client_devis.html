@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}Devis de {{ client.nom }}{% endblock %}
+
+{% block content %}
+<h1>Devis pour {{ client.nom }} {{ client.prenom }}</h1>
+
+{% if devis_list %}
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Référence</th>
+            <th>Date de création</th>
+            <th>Montant</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for devis in devis_list %}
+        <tr>
+            <td>{{ devis.reference }}</td>
+            <td>{{ devis.date_creation|date:"d/m/Y" }}</td>
+            <td>{{ devis.montant }} €</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p>Aucun devis pour ce client.</p>
+{% endif %}
+
+<a href="{% url 'liste_clients' %}" class="btn btn-secondary mt-3">⬅ Retour</a>
+{% endblock %}

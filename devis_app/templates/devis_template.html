@@ -204,10 +204,10 @@
                         <td style="padding: 6px; font-weight: bold;">{{ ligne.produit.nom }}</td>
                         <td style="padding: 6px;">{{ ligne.quantite }}</td>
                         <td style="padding: 6px;">{{ ligne.unite }}</td>
-                        <td style="padding: 6px;">{{ ligne.pu }} €</td>
+                        <td style="padding: 6px;">{{ ligne.pu }}  CFA</td>
                         <td style="padding: 6px;">{{ ligne.remise }} %</td>
-                        <td style="padding: 6px;">{{ ligne.pu_net }} €</td>
-                        <td style="padding: 6px; text-align: right;">{{ ligne.total_ttc }} €</td>
+                        <td style="padding: 6px;">{{ ligne.pu_net }}  CFA</td>
+                        <td style="padding: 6px; text-align: right;">{{ ligne.total_ttc }}  CFA</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -219,30 +219,30 @@
             <table style="width: 40%; border-collapse: collapse; font-size: 12px; float: right; text-align: right;">
                 <tr>
                     <td style="border: 1px solid black; padding: 5px; text-align: left;">Total HT</td>
-                    <td style="border: 1px solid black; padding: 5px;">{{ devis.total_ht }} €</td>
+                    <td style="border: 1px solid black; padding: 5px;">{{ devis.total_ht }}  CFA</td>
                 </tr>
                 <tr>
                     <td style="border: 1px solid black; padding: 5px; text-align: left;">Remise</td>
-                    <td style="border: 1px solid black; padding: 5px;">{{ devis.total_remise }} €</td>
+                    <td style="border: 1px solid black; padding: 5px;">{{ devis.total_remise }}  CFA</td>
                 </tr>
                 <tr>
                     <td style="border: 1px solid black; padding: 5px; text-align: left; font-weight: bold;">
                         TOTAL HT REMISE
                     </td>
                     <td style="border: 1px solid black; padding: 5px; font-weight: bold;">
-                        {{ devis.total_ht_remise }} €
+                        {{ devis.total_ht_remise }}  CFA
                     </td>
                 </tr>
                 <tr>
                     <td style="border: 1px solid black; padding: 5px; text-align: left;">TVA {{ devis.tva }}%</td>
-                    <td style="border: 1px solid black; padding: 5px;">{{ devis.total_ttc|floatformat:2 }} €</td>
+                    <td style="border: 1px solid black; padding: 5px;">{{ devis.total_ttc|floatformat:2 }}  CFA</td>
                 </tr>
                 <tr>
                     <td style="border: 1px solid black; padding: 5px; text-align: left; font-weight: bold;">
                         TOTAL TTC
                     </td>
                     <td style="border: 1px solid black; padding: 5px; font-weight: bold; color: red;">
-                        {{ devis.total_ttc }} €
+                        {{ devis.total_ttc }}  CFA
                     </td>
                 </tr>
             </table>

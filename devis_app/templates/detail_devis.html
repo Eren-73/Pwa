@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block title %}Détail du Devis{% endblock %}
+
+{% block content %}
+<h1>Détail du Devis n°{{ devis.numero_devis }}</h1>
+
+<p><strong>Client :</strong> {{ devis.client.nom }} {{ devis.client.prenom }}</p>
+<p><strong>Date :</strong> {{ devis.date_emission|date:"d/m/Y" }}</p>
+<p><strong>Total TTC :</strong> {{ devis.total_ttc }} €</p>
+
+<h2>Lignes du devis</h2>
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Produit</th>
+            <th>Quantité</th>
+            <th>Prix unitaire</th>
+            <th>Total HT</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for ligne in devis.lignes.all %}
+        <tr>
+            <td>{{ ligne.produit.nom }}</td>
+            <td>{{ ligne.quantite }}</td>
+            <td>{{ ligne.pu }} €</td>
+            <td>{{ ligne.total_ht }} €</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
+
