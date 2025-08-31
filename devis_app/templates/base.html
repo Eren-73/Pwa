@@ -1,75 +1,80 @@
 <!DOCTYPE html>
 <html lang="fr">
-<head>
-    <meta charset="UTF-8" />
-    <title>{% block title %}PWA Devis{% endblock %}</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <head>
+        <meta charset="UTF-8" />
+        <title>{% block title %}PWA Devis{% endblock %}</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet" />
+        <!-- Bootstrap CSS -->
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet" />
 
-    <style>
-        body {
-            display: flex;
-            min-height: 100vh;
-            margin: 0;
-            background-color: #f8f9fa;
-        }
-
-        .sidebar {
-            min-width: 220px;
-            max-width: 220px;
-            background-color: #343a40;
-            color: white;
-            padding: 20px;
-        }
-
-        .sidebar a {
-            color: white;
-            text-decoration: none;
-            display: block;
-            margin: 15px 0;
-        }
-
-        .sidebar a:hover {
-            background-color: #495057;
-            border-radius: 5px;
-            padding-left: 5px;
-        }
-
-        .content {
-            flex: 1;
-            padding: 20px;
-        }
-
-        @media print {
-            .no-print {
-                display: none;
+        <style>
+            body {
+                display: flex;
+                min-height: 100vh;
+                margin: 0;
+                background-color: #f8f9fa;
             }
-        }
-    </style>
 
-    {% block extra_head %}{% endblock %}
-</head>
-<body>
+            .sidebar {
+                min-width: 220px;
+                max-width: 220px;
+                background-color: #343a40;
+                color: white;
+                padding: 20px;
+            }
 
-    <!-- Sidebar -->
-    <div class="sidebar">
-        <h3>Menu</h3>
-        <ul class="list-unstyled">
-            <li><a href="{% url 'dashboard' %}">🏠 Tableau de bord</a></li>
-            <li><a href="{% url 'liste_clients' %}">👥 Clients</a></li>
-            <li><a href="{% url 'ajouter_client' %}">➕ Ajouter un client</a></li>
-        </ul>
-    </div>
+            .sidebar a {
+                color: white;
+                text-decoration: none;
+                display: block;
+                margin: 15px 0;
+            }
 
-    <!-- Contenu principal -->
-    <div class="content">
-        {% block content %}
-        <!-- Contenu spécifique à chaque page -->
-        {% endblock %}
-    </div>
+            .sidebar a:hover {
+                background-color: #495057;
+                border-radius: 5px;
+                padding-left: 5px;
+            }
 
-</body>
+            .content {
+                flex: 1;
+                padding: 20px;
+            }
+
+            @media print {
+                .no-print {
+                    display: none;
+                }
+            }
+        </style>
+
+        {% block extra_head %}{% endblock %}
+    </head>
+    <body>
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <h3>Menu</h3>
+            <ul class="list-unstyled">
+                <li><a href="{% url 'dashboard' %}">🏠 Tableau de bord</a></li>
+                <li><a href="{% url 'liste_clients' %}">👥 Clients</a></li>
+                <li><a href="{% url 'liste_materiels' %}">📦 Liste des matériels</a></li>
+            </ul>
+        </div>
+
+        <!-- Contenu principal -->
+        <div class="content">
+            {% block content %}
+            <!-- Contenu spécifique à chaque page -->
+            {% endblock %}
+        </div>
+        {% if messages %}
+        <div class="container mt-3">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </body>
 </html>

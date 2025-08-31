@@ -1,10 +1,15 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from .models import Devis, LigneDevis,Client
-from .forms import DevisForm, LigneDevisForm,ClientForm
+from .models import Devis, LigneDevis,Client,Categorie,Produit
+from .forms import DevisForm, LigneDevisForm,ClientForm,ProduitForm,CategorieForm
 from django.forms import modelformset_factory
 from django.urls import reverse
 from .utils import generate_qr_code
 from django.http import JsonResponse
+from django.contrib import messages
+from django.views.decorators.csrf import csrf_exempt
+
+
+import json
 
 
 def creer_devis(request):
@@ -28,10 +33,8 @@ def creer_devis(request):
 
             # ⚡ Utiliser l'IP locale de ton PC pour que le téléphone y accède
             current_site_ip = "192.168.1.68"
-            devis_url = f"http://{current_site_ip}:8000{reverse('devis_template ', args=[devis.pk])}"
-            print("URL générée pour QR:", devis_url)
+            devis_url = f"http://{current_site_ip}:8000{reverse('devis_template', args=[devis.pk])}"
 
-            print(reverse('devis_template ', args=[13])) 
 
             # Générer et enregistrer le QR code
             print("Lien dans le QR :", devis_url)
@@ -43,7 +46,7 @@ def creer_devis(request):
 
 
 
-            return redirect('devis_template ', pk=devis.pk)
+            return redirect('devis_template', pk=devis.pk)
 
     else:  # GET
         devis_form = DevisForm()
@@ -135,3 +138,66 @@ def detail_devis(request, devis_id):
         "devis": devis,
         "lignes": lignes
     })
+
+@csrf_exempt
+def supprimer_devis_selectionnes(request):
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            devis_ids = data.get("devis_ids", [])
+            Devis.objects.filter(id__in=devis_ids).delete()
+            return JsonResponse({"success": True})
+        except Exception as e:
+            return JsonResponse({"success": False, "error": str(e)}, status=400)
+    return JsonResponse({"success": False, "error": "Méthode non autorisée"}, status=405)
+
+
+def liste_materiels(request):
+    categories = Categorie.objects.prefetch_related('produit_set').all()
+    return render(request, 'liste_materiels.html', {'categories': categories})
+
+@csrf_exempt
+def supprimer_produit(request, produit_id):
+    if request.method == "POST":
+        try:
+            produit = Produit.objects.get(id=produit_id)
+            produit.delete()
+            return JsonResponse({"success": True})
+        except Produit.DoesNotExist:
+            return JsonResponse({"success": False, "error": "Produit introuvable"})
+    return JsonResponse({"success": False, "error": "Méthode non autorisée"})
+
+def modifier_produit(request, produit_id):
+    produit = get_object_or_404(Produit, id=produit_id)
+
+    if request.method == "POST":
+        form = ProduitForm(request.POST, instance=produit)
+        if form.is_valid():
+            form.save()
+            return redirect('liste_materiels')  # redirige vers la liste des matériels
+    else:
+        form = ProduitForm(instance=produit)
+
+    return render(request, 'modifier_produit.html', {'form': form, 'produit': produit})
+
+
+
+def ajouter_categorie(request):
+    if request.method == "POST":
+        form = CategorieForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('liste_materiels')
+    else:
+        form = CategorieForm()
+    return render(request, 'ajouter_categorie.html', {'form': form})
+
+def ajouter_produit(request):
+    if request.method == "POST":
+        form = ProduitForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('liste_materiels')
+    else:
+        form = ProduitForm()
+    return render(request, 'ajouter_produit.html', {'form': form})

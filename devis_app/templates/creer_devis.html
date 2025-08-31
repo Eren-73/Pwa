@@ -1,73 +1,119 @@
-{% extends "base.html" %} {% load widget_tweaks %} {% block content %}
+{% extends "base.html" %}
+{% load widget_tweaks %}
+
+{% block content %}
 <style>
-    /* Champs de formulaire esthétiques */
-    .form-control {
-        border-radius: 0.5rem;
-        box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
-        padding: 0.6rem 0.75rem;
+    body {
+        background: #f8fafc;
+    }
+
+    .page-title {
+        font-size: 2.3rem;
+        font-weight: 700;
+        color: #0d6efd;
+    }
+    .page-subtitle {
+        color: #6c757d;
+    }
+
+    .card {
+        border: none;
+        border-radius: 1.2rem;
+        background: #fff;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.05);
         transition: all 0.3s ease;
     }
-
-    .form-control:focus {
-        border-color: #0d6efd;
-        box-shadow: 0 0 0 0.2rem rgba(13,110,253,0.25);
+    .card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 25px rgba(0,0,0,0.08);
     }
 
+    .card-header {
+        border-radius: 1.2rem 1.2rem 0 0;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        background: linear-gradient(90deg, #0d6efd, #4dabf7);
+    }
+
+    .form-control {
+        border-radius: 0.75rem;
+        padding: 0.65rem 0.9rem;
+        border: 1px solid #dee2e6;
+    }
+    .form-control:focus {
+        border-color: #4dabf7;
+        box-shadow: 0 0 0 0.25rem rgba(77,171,247,0.25);
+    }
     label {
-        font-weight: 500;
+        font-weight: 600;
         color: #495057;
+    }
+
+    .btn {
+        border-radius: 0.75rem;
+        transition: all 0.3s ease;
+    }
+    .btn:hover {
+        transform: scale(1.05);
+    }
+    .btn i {
+        margin-right: 0.35rem;
     }
 
     .formset-form {
         transition: all 0.3s ease;
-        cursor: pointer;
+        border: 1px solid #f1f3f5;
+        border-left: 4px solid #0d6efd;
     }
 
-    .formset-form:hover {
-        transform: scale(1.01);
-        box-shadow: 0 0 15px rgba(0,0,0,0.1);
-    }
-
-    /* Bouton supprimer produit */
-    .remove-form i {
-        font-size: 0.85rem;
-    }
-
-    .formset-form .form-label {
-        font-weight: 500;
-    }
-
-    /* Animation fade-in */
     .fade-in {
         opacity: 0;
-        transition: opacity 0.3s ease;
+        transform: translateY(10px);
+        transition: opacity 0.4s ease, transform 0.4s ease;
     }
-
     .fade-in.show {
         opacity: 1;
+        transform: translateY(0);
+    }
+
+    .remove-form {
+        border-radius: 50%;
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    #formset-area {
+        max-height: 400px;
+        overflow-y: auto;
+        padding-right: 10px;
     }
 </style>
 
 <div class="container my-5">
-    <!-- Titre -->
     <div class="text-center mb-5">
-        <h2 class="fw-bold display-6">Création d’un devis</h2>
-        <p class="text-muted">Remplissez les informations et ajoutez les produits</p>
+        <h2 class="page-title">Création d’un devis</h2>
+        <p class="page-subtitle">Remplissez les informations du client et ajoutez vos produits</p>
     </div>
 
-    <!-- Formulaire -->
     <form method="post" class="needs-validation" novalidate>
         {% csrf_token %}
 
         <!-- Partie Devis -->
-        <div class="card mb-4 shadow-lg border-0 rounded-4">
-            <div class="card-header bg-primary text-white fs-5">Informations du devis</div>
+        <div class="card mb-4">
+            <div class="card-header text-white fs-5">
+                <i class="bi bi-file-earmark-text me-2"></i> Informations du devis
+            </div>
             <div class="card-body">
-                <div class="row g-3">
+                <div class="row g-4">
                     {% for field in devis_form %}
                     <div class="col-md-6">
                         <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-                        {{ field|add_class:"form-control" }} {% if field.errors %}
+                        {{ field|add_class:"form-control" }}
+                        {% if field.errors %}
                         <div class="text-danger small">{{ field.errors }}</div>
                         {% endif %}
                     </div>
@@ -77,95 +123,89 @@
         </div>
 
         <!-- Partie Produits -->
-        <div class="card mb-4 shadow-lg border-0 rounded-4">
-            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center fs-5">
-                <span>Produits</span>
-                <button type="button" class="btn btn-success btn-sm" id="add-form">
-                    <i class="bi bi-plus-circle"></i>
-                    Ajouter un produit
+        <div class="card mb-4">
+            <div class="card-header text-white d-flex justify-content-between align-items-center fs-5">
+                <span><i class="bi bi-box-seam me-2"></i> Produits</span>
+                <!-- Bouton qui ouvre le modal -->
+                <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#productModal">
+                    <i class="bi bi-plus-circle"></i> Ajouter un produit
                 </button>
             </div>
             <div class="card-body" id="formset-area">
                 {{ formset.management_form }}
-                <!-- Aucun produit affiché par défaut -->
-            </div>
-
-            <!-- Template invisible pour un nouveau produit -->
-            <div id="empty-product-template" style="display: none;">
-                <div class="formset-form border p-4 mb-3 rounded-4 shadow-sm position-relative bg-white fade-in">
-                    <div class="d-flex align-items-center mb-3">
-                        <i class="bi bi-box-seam me-2 fs-4 text-primary"></i>
-                        <h6 class="mb-0 fw-bold">Nouveau produit</h6>
-                    </div>
-                    {% for field in formset.empty_form %} {% if field.name != "id" and field.name != "DELETE" %}
-                    <div class="mb-3">
-                        <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
-                        {{ field|add_class:"form-control" }}
-                    </div>
-                    {% endif %} {% endfor %}
-                    <button
-                        type="button"
-                        class="btn btn-danger btn-sm remove-form position-absolute top-0 end-0 m-2"
-                        title="Supprimer ce produit"
-                    >
-                        <i class="bi bi-trash-fill"></i>
-                    </button>
-                </div>
             </div>
         </div>
 
         <!-- Bouton sauvegarde -->
         <div class="text-center mb-5">
             <button type="submit" class="btn btn-primary btn-lg px-5 shadow-sm">
-                <i class="bi bi-save2"></i>
-                Enregistrer le devis
+                <i class="bi bi-save2"></i> Enregistrer le devis
             </button>
         </div>
     </form>
 </div>
 
-<!-- Script pour gérer l’ajout/suppression dynamique -->
+<!-- Modal pour ajouter un produit -->
+<div class="modal fade" id="productModal" tabindex="-1" aria-labelledby="productModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="productModalLabel">Ajouter un produit</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+      </div>
+      <div class="modal-body">
+        <!-- Contenu généré dynamiquement -->
+        <div id="modal-product-form"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+        <button type="button" class="btn btn-primary" id="save-product">Ajouter</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Template produit caché -->
+<div id="empty-product-template" style="display: none;">
+    <div class="formset-form p-4 mb-3 rounded-4 shadow-sm position-relative bg-white fade-in">
+        <div class="d-flex align-items-center mb-3">
+            <i class="bi bi-tag me-2 fs-4 text-primary"></i>
+            <h6 class="mb-0 fw-bold">Nouveau produit</h6>
+        </div>
+        {% for field in formset.empty_form %}
+            {% if field.name != "id" and field.name != "DELETE" %}
+            <div class="mb-3">
+                <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                {{ field|add_class:"form-control" }}
+            </div>
+            {% endif %}
+        {% endfor %}
+        <button type="button" class="btn btn-danger btn-sm remove-form position-absolute top-0 end-0 m-2">
+            <i class="bi bi-x-lg"></i>
+        </button>
+    </div>
+</div>
+
 <script>
 document.addEventListener("DOMContentLoaded", function () {
     const formsetArea = document.getElementById("formset-area");
-    const addButton = document.getElementById("add-form");
     const totalForms = document.getElementById("id_form-TOTAL_FORMS");
     const template = document.getElementById("empty-product-template").innerHTML;
+    const modalFormContainer = document.getElementById("modal-product-form");
+    const saveBtn = document.getElementById("save-product");
 
-    // Met à jour les indexes des inputs pour Django
-    function updateFormIndexes() {
-        const forms = formsetArea.querySelectorAll(".formset-form");
-        forms.forEach((form, index) => {
-            form.querySelectorAll("input, select, textarea").forEach(el => {
-                if (el.name) {
-                    const name = el.name.replace(/form-(\d+)-/, `form-${index}-`);
-                    el.name = name;
-                    el.id = "id_" + name;
-                }
-            });
-        });
-        totalForms.value = forms.length;
-    }
+    // Quand on ouvre le modal : insérer un formulaire vide
+    document.getElementById("productModal").addEventListener("show.bs.modal", () => {
+        modalFormContainer.innerHTML = template;
+    });
 
-    // Active les boutons supprimer
-    function activateRemoveButtons() {
-        formsetArea.querySelectorAll(".remove-form").forEach(btn => {
-            btn.onclick = () => {
-                const formDiv = btn.closest(".formset-form");
-                formDiv.remove();
-                updateFormIndexes();
-            };
-        });
-    }
-
-    // Ajout d’un nouveau formulaire
-    addButton.addEventListener("click", () => {
+    // Quand on clique sur "Ajouter" dans le modal
+    saveBtn.addEventListener("click", () => {
         const currentForms = parseInt(totalForms.value);
         const wrapper = document.createElement("div");
-        wrapper.innerHTML = template;
+        wrapper.innerHTML = modalFormContainer.innerHTML;
         const newForm = wrapper.firstElementChild;
 
-        // Réinitialise les valeurs
         newForm.querySelectorAll("input, select, textarea").forEach(el => {
             const name = el.name.replace(/__prefix__/, currentForms);
             el.name = name;
@@ -175,15 +215,21 @@ document.addEventListener("DOMContentLoaded", function () {
         });
 
         formsetArea.appendChild(newForm);
-        setTimeout(() => newForm.classList.add("show"), 10);
-        updateFormIndexes();
-        activateRemoveButtons();
+        totalForms.value = parseInt(totalForms.value) + 1;
+
+        // Fermer le modal
+        const modalEl = document.getElementById("productModal");
+        const modalInstance = bootstrap.Modal.getInstance(modalEl);
+        modalInstance.hide();
     });
 
-    // Initialiser les boutons supprimer pour les formulaires existants
-    activateRemoveButtons();
+    // Activer suppression
+    formsetArea.addEventListener("click", (e) => {
+        if (e.target.closest(".remove-form")) {
+            e.target.closest(".formset-form").remove();
+            totalForms.value = formsetArea.querySelectorAll(".formset-form").length;
+        }
+    });
 });
 </script>
-
-
 {% endblock %}

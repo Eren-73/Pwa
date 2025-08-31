@@ -5,9 +5,14 @@
 {% block content %}
 <h1 class="mb-4">Dashboard Devis</h1>
 
-<!-- Bouton Créer un devis -->
-<div class="mb-4">
+<div class="d-flex justify-content-start mb-4 gap-2">
+    <!-- Bouton Créer un devis -->
     <a href="{% url 'creer_devis' %}" class="btn btn-primary">➕ Créer un devis</a>
+
+    <!-- Bouton Supprimer sélectionné (initialement caché) -->
+    <button type="button" id="btnSupprimerSelection" class="btn btn-danger" style="display:none;" data-bs-toggle="modal" data-bs-target="#confirmDeleteModal">
+        🗑 Supprimer les devis sélectionnés
+    </button>
 </div>
 
 <!-- Filtre par date -->
@@ -24,19 +29,23 @@
 </form>
 
 <!-- Liste des devis -->
-<h2 class="mb-3">Liste des devis</h2>
-<div class="row">
+<div class="row" id="devisContainer">
     {% for devis in devis_list %}
-    <div class="col-md-4">
-        <div class="card card-devis shadow-sm">
-            <div class="card-body">
+    <div class="col-md-4 mb-3 devis-card" data-id="{{ devis.id }}">
+        <div class="card card-devis shadow-sm position-relative p-2">
+            <!-- Checkbox pour sélectionner le devis -->
+            <div class="form-check position-absolute top-0 end-0 m-2">
+                <input type="checkbox" name="devis_ids" value="{{ devis.id }}" class="form-check-input check-devis" id="devis{{ devis.id }}">
+            </div>
+
+            <div class="card-body mt-2">
                 <h5 class="card-title">Devis {{ devis.numero_devis }}</h5>
                 <p class="card-text">
                     <strong>Client :</strong> {{ devis.client }}<br>
-                    <strong>Date :</strong> {{ devis.date_emission }}<br>
-                    <strong>Total TTC :</strong> {{ devis.total_ttc }}
+                    <strong>Date :</strong> {{ devis.date_emission|date:"d/m/Y" }}<br>
+                    <strong>Total TTC :</strong> {{ devis.total_ttc }} €
                 </p>
-                <a href="{% url 'devis_template ' devis.pk %}" class="btn btn-success">Voir facture</a>
+                <a href="{% url 'devis_template' devis.pk %}" class="btn btn-success btn-sm">👁 Voir facture</a>
             </div>
         </div>
     </div>
@@ -44,4 +53,122 @@
     <p>Aucun devis trouvé.</p>
     {% endfor %}
 </div>
+
+<!-- Modal de confirmation suppression -->
+<div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-labelledby="confirmDeleteModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="confirmDeleteModalLabel">Confirmer la suppression</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+      </div>
+      <div class="modal-body">
+        Voulez-vous vraiment supprimer les devis sélectionnés ?
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+        <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Supprimer</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast notification -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+  <div id="deleteToast" class="toast align-items-center text-bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
+    <div class="d-flex">
+      <div class="toast-body">
+        ✅ Devis supprimés avec succès !
+      </div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Fermer"></button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_head %}
+<style>
+.card-devis {
+    min-height: 180px;
+}
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const btnSupprimer = document.getElementById('btnSupprimerSelection');
+    const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+
+    function getCheckboxes() {
+        return document.querySelectorAll('.check-devis');
+    }
+
+    function toggleBtn() {
+        const anyChecked = Array.from(getCheckboxes()).some(chk => chk.checked);
+        btnSupprimer.style.display = anyChecked ? 'inline-block' : 'none';
+    }
+
+    function resetCheckboxes() {
+        getCheckboxes().forEach(chk => chk.checked = false);
+        toggleBtn();
+    }
+
+    // Attacher les events sur toutes les checkboxes actuelles
+    function attachCheckboxEvents() {
+        getCheckboxes().forEach(chk => {
+            chk.removeEventListener('change', toggleBtn); // évite doublons
+            chk.addEventListener('change', toggleBtn);
+        });
+    }
+
+    // Initialisation
+    attachCheckboxEvents();
+    toggleBtn();
+
+    confirmDeleteBtn.addEventListener('click', function() {
+        const selectedIds = Array.from(getCheckboxes())
+                                 .filter(chk => chk.checked)
+                                 .map(chk => chk.value);
+
+        if(selectedIds.length === 0) return;
+
+        fetch("{% url 'supprimer_devis_selectionnes' %}", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": "{{ csrf_token }}"
+            },
+            body: JSON.stringify({ devis_ids: selectedIds })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if(data.success) {
+                // Supprime les cartes du DOM
+                selectedIds.forEach(id => {
+                    const card = document.querySelector('.devis-card[data-id="'+id+'"]');
+                    if(card) card.remove();
+                });
+
+                // Ferme la modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('confirmDeleteModal'));
+                modal.hide();
+
+                // Réinitialise les checkboxes
+                resetCheckboxes();
+                attachCheckboxEvents();
+
+                // Affiche le toast
+                const toastEl = document.getElementById('deleteToast');
+                const toast = new bootstrap.Toast(toastEl);
+                toast.show();
+            } else {
+                alert("Erreur : " + (data.error || "Suppression échouée"));
+            }
+        })
+        .catch(() => alert("Erreur lors de la suppression."));
+    });
+});
+</script>
 {% endblock %}

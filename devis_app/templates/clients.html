@@ -3,88 +3,78 @@
 {% block title %}Liste des Clients{% endblock %}
 
 {% block content %}
-<h1 class="mb-4">Liste des clients</h1>
+<h1 class="mb-4 text-center text-primary">📋 Liste des clients</h1>
 
 <!-- Bouton Ajouter Client avec menu coulissant -->
-<div class="mb-4">
+<div class="mb-4 d-flex justify-content-center gap-2">
     <button class="btn btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#ajouterClientForm" aria-expanded="false" aria-controls="ajouterClientForm">
         ➕ Ajouter un client
     </button>
+</div>
 
-    <div class="collapse mt-3" id="ajouterClientForm">
-        <div class="card card-body shadow-sm">
-            <form method="post" action="{% url 'ajouter_client' %}">
-                {% csrf_token %}
-                <div class="mb-3">
+<div class="collapse mb-4" id="ajouterClientForm">
+    <div class="card card-body shadow-sm border-primary">
+        <form method="post" action="{% url 'ajouter_client' %}">
+            {% csrf_token %}
+            <div class="row g-3">
+                <div class="col-md-6">
                     <label for="id_nom" class="form-label">Nom</label>
                     <input type="text" class="form-control" id="id_nom" name="nom" required>
                 </div>
-                <div class="mb-3">
+                <div class="col-md-6">
                     <label for="id_prenom" class="form-label">Prénom</label>
                     <input type="text" class="form-control" id="id_prenom" name="prenom" required>
                 </div>
-                <div class="mb-3">
+                <div class="col-md-6">
                     <label for="id_email" class="form-label">Email</label>
                     <input type="email" class="form-control" id="id_email" name="email" required>
                 </div>
-                <div class="mb-3">
+                <div class="col-md-6">
                     <label for="id_telephone" class="form-label">Téléphone</label>
                     <input type="text" class="form-control" id="id_telephone" name="telephone">
                 </div>
-                <div class="mb-3">
+                <div class="col-12">
                     <label for="id_adresse" class="form-label">Adresse</label>
                     <input type="text" class="form-control" id="id_adresse" name="adresse">
                 </div>
+            </div>
+            <div class="mt-3 text-end">
                 <button type="submit" class="btn btn-success">Ajouter</button>
-            </form>
-        </div>
+            </div>
+        </form>
     </div>
 </div>
 
-<!-- Liste des clients -->
-<div class="card shadow-sm">
-    <div class="card-body">
-        <table class="table table-striped table-hover">
-            <thead>
-                <tr>
-                    <th>Nom</th>
-                    <th>Prénom</th>
-                    <th>Email</th>
-                    <th>Téléphone</th>
-                    <th>Adresse</th>
-                    <th>Date d'ajout</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for client in clients %}
-                <tr>
-                    <!-- 🔹 Nom cliquable qui envoie vers la page devis du client -->
-                    <td>
-                        <a href="{% url 'devis_par_client' client.id %}" class="text-primary">
-                           {{ client.nom }}
-                        </a>
-                    </td>
-                    <td>{{ client.prenom }}</td>
-                    <td>{{ client.email }}</td>
-                    <td>{{ client.telephone }}</td>
-                    <td>{{ client.adresse }}</td>
-                    <td>{{ client.date_creation|date:"d/m/Y" }}</td>
-                    <td class="actions-cell">
-                        <a href="{% url 'modifier_client' client.id %}" class="btn btn-warning btn-sm">✏️ Modifier</a>
-                        <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteModal" data-client-id="{{ client.id }}" data-client-nom="{{ client.nom }}">
-                            🗑 Supprimer
-                        </button>
-                    </td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="7" class="text-center">Aucun client trouvé.</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+<!-- Liste des clients sous forme de cartes -->
+<div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+    {% for client in clients %}
+    <div class="col">
+        <div class="card shadow-sm h-100 border-info">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <a href="{% url 'devis_par_client' client.id %}" class="text-decoration-none text-primary">
+                        {{ client.nom }} {{ client.prenom }}
+                    </a>
+                </h5>
+                <p class="card-text mb-1"><strong>Email:</strong> {{ client.email }}</p>
+                <p class="card-text mb-1"><strong>Téléphone:</strong> {{ client.telephone }}</p>
+                <p class="card-text mb-1"><strong>Adresse:</strong> {{ client.adresse }}</p>
+                <p class="text-muted mb-2"><small>Ajouté le {{ client.date_creation|date:"d/m/Y" }}</small></p>
+
+                <div class="d-flex justify-content-end gap-2 actions-cell">
+                    <a href="{% url 'modifier_client' client.id %}" class="btn btn-warning btn-sm">✏️ Modifier</a>
+                    <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteModal" data-client-id="{{ client.id }}" data-client-nom="{{ client.nom }}">
+                        🗑 Supprimer
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
+    {% empty %}
+    <div class="col-12 text-center">
+        <p class="text-muted">Aucun client trouvé.</p>
+    </div>
+    {% endfor %}
 </div>
 
 <!-- Modal de confirmation de suppression -->
@@ -120,18 +110,27 @@
     </div>
   </div>
 </div>
-
 {% endblock %}
 
 {% block extra_head %}
 <style>
-    .actions-cell {
-        visibility: hidden;
-        white-space: nowrap;
-    }
-    tr:hover .actions-cell {
-        visibility: visible;
-    }
+/* Actions apparaissent au hover */
+.actions-cell {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+.card:hover .actions-cell {
+    opacity: 1;
+}
+
+/* Cartes avec ombre et bordure */
+.card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+}
 </style>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
