@@ -7,14 +7,18 @@ from .utils import generate_qr_code
 from django.http import JsonResponse
 from django.contrib import messages
 from django.views.decorators.csrf import csrf_exempt
+from django.template.loader import render_to_string
+# from docx import Document
+# from django.http import HttpResponse
 
-
-import json
+# import weasyprint
+# import openpyxl
+# import json
 
 
 def creer_devis(request):
     LigneDevisFormSet = modelformset_factory(
-        LigneDevis, form=LigneDevisForm, extra=3, can_delete=True
+        LigneDevis, form=LigneDevisForm, extra=0, can_delete=True
     )
 
     if request.method == 'POST':
@@ -39,14 +43,14 @@ def creer_devis(request):
             # Générer et enregistrer le QR code
             print("Lien dans le QR :", devis_url)
             devis.qr_code.save(
-                f"qr_{devis.pk}.png",
+                f"qr_{devis.slug}.png",
                 generate_qr_code(devis.numero_devis),
                 save=True
             )
 
 
 
-            return redirect('devis_template', pk=devis.pk)
+            return redirect('devis_template', slug=devis.slug)
 
     else:  # GET
         devis_form = DevisForm()
@@ -57,8 +61,8 @@ def creer_devis(request):
         'formset': formset
     })
 
-def devis_template (request, pk):
-    devis = get_object_or_404(Devis, pk=pk)
+def devis_template (request, slug):
+    devis = get_object_or_404(Devis, slug=slug)
     lignes = devis.lignes.all()
     
     return render(request, 'devis_template.html', {
@@ -92,19 +96,16 @@ def liste_clients(request):
 
 def ajouter_client(request):
     if request.method == 'POST':
-        nom = request.POST.get('nom')
-        prenom = request.POST.get('prenom')
-        email = request.POST.get('email')
-        telephone = request.POST.get('telephone')
-        adresse = request.POST.get('adresse')
+        form = ClientForm(request.POST)
+        if form.is_valid():
+            client = form.save()  # ✅ slug généré automatiquement
+            return redirect('liste_clients')
+    else:
+        form = ClientForm()
+    return render(request, 'ajouter_client.html', {'form': form})
 
-        Client.objects.create(
-            nom=nom, prenom=prenom, email=email, telephone=telephone, adresse=adresse
-        )
-        return redirect('liste_clients')
-
-def modifier_client(request, pk):
-    client = get_object_or_404(Client, pk=pk)
+def modifier_client(request, slug):
+    client = get_object_or_404(Client, slug=slug)
     if request.method == 'POST':
         form = ClientForm(request.POST, instance=client)
         if form.is_valid():
@@ -115,24 +116,23 @@ def modifier_client(request, pk):
     return render(request, 'modifier_client.html', {'form': form, 'client': client})
 
 
-def supprimer_client(request, pk):
-    client = get_object_or_404(Client, pk=pk)
+def supprimer_client(request, slug):
+    client = get_object_or_404(Client, slug=slug)
     if request.method == 'POST':
         client.delete()
-        print("Client supprimé")
-        # Redirection avec paramètre GET pour indiquer suppression
         return redirect('/clients/?deleted=1')
-    
-def devis_par_client(request, pk):
-    client = get_object_or_404(Client, pk=pk)
-    devis_list = Devis.objects.filter(client=client)  # tous les devis liés à ce client
+    return render(request, 'supprimer_client.html', {'client': client})
+
+def devis_par_client(request, slug):
+    client = get_object_or_404(Client, slug=slug)
+    devis_list = Devis.objects.filter(client=client)
     return render(request, 'devis_par_client.html', {
         'client': client,
         'devis_list': devis_list
     })
 
-def detail_devis(request, devis_id):
-    devis = get_object_or_404(Devis, id=devis_id)
+def detail_devis(request, slug):
+    devis = get_object_or_404(Devis, slug=slug)
     lignes = devis.lignes.all()
     return render(request, "devis_template.html", {
         "devis": devis,
@@ -144,7 +144,7 @@ def supprimer_devis_selectionnes(request):
     if request.method == "POST":
         try:
             data = json.loads(request.body)
-            devis_ids = data.get("devis_ids", [])
+            devis_ids = [int(i) for i in data.get("devis_ids", [])]  # conversion en int
             Devis.objects.filter(id__in=devis_ids).delete()
             return JsonResponse({"success": True})
         except Exception as e:
@@ -201,3 +201,45 @@ def ajouter_produit(request):
     else:
         form = ProduitForm()
     return render(request, 'ajouter_produit.html', {'form': form})
+
+
+
+# def export_devis_word(request, slug):
+#     devis = get_object_or_404(Devis, slug=slug)
+#     doc = Document()
+#     doc.add_heading(f'Devis {devis.numero_devis}', 0)
+#     doc.add_paragraph(f'Client: {devis.client.nom} {devis.client.prenom}')
+#     doc.add_paragraph(f'Date: {devis.date_emission}')
+#     # ajouter les lignes de produits etc.
+#     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+#     response['Content-Disposition'] = f'attachment; filename=Devis_{devis.numero_devis}.docx'
+#     doc.save(response)
+#     return response
+
+
+# def export_devis_word(request, slug):
+#     devis = get_object_or_404(Devis, slug=slug)
+#     doc = Document()
+#     doc.add_heading(f'Devis {devis.numero_devis}', 0)
+#     doc.add_paragraph(f'Client: {devis.client.nom} {devis.client.prenom}')
+#     doc.add_paragraph(f'Date: {devis.date_emission}')
+#     # ajouter les lignes de produits etc.
+#     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+#     response['Content-Disposition'] = f'attachment; filename=Devis_{devis.numero_devis}.docx'
+#     doc.save(response)
+#     return response
+
+
+
+def export_devis_excel(request, slug):
+    devis = get_object_or_404(Devis, slug=slug)
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Devis"
+    ws.append(["Produit", "Qté", "Unité", "Prix Unitaire", "Remise", "P.U Net", "Total TTC"])
+    for ligne in devis.lignes.all():
+        ws.append([ligne.produit.nom, ligne.quantite, ligne.unite, ligne.pu, ligne.remise, ligne.pu_net, ligne.total_ttc])
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = f'attachment; filename=Devis_{devis.numero_devis}.xlsx'
+    wb.save(response)
+    return response

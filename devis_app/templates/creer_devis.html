@@ -6,7 +6,6 @@
     body {
         background: #f8fafc;
     }
-
     .page-title {
         font-size: 2.3rem;
         font-weight: 700;
@@ -15,7 +14,6 @@
     .page-subtitle {
         color: #6c757d;
     }
-
     .card {
         border: none;
         border-radius: 1.2rem;
@@ -27,65 +25,27 @@
         transform: translateY(-4px);
         box-shadow: 0 12px 25px rgba(0,0,0,0.08);
     }
-
     .card-header {
         border-radius: 1.2rem 1.2rem 0 0;
         font-weight: 600;
-        letter-spacing: 0.5px;
         background: linear-gradient(90deg, #0d6efd, #4dabf7);
     }
-
     .form-control {
         border-radius: 0.75rem;
         padding: 0.65rem 0.9rem;
-        border: 1px solid #dee2e6;
     }
     .form-control:focus {
         border-color: #4dabf7;
         box-shadow: 0 0 0 0.25rem rgba(77,171,247,0.25);
     }
-    label {
-        font-weight: 600;
-        color: #495057;
-    }
-
-    .btn {
-        border-radius: 0.75rem;
-        transition: all 0.3s ease;
-    }
-    .btn:hover {
-        transform: scale(1.05);
-    }
-    .btn i {
-        margin-right: 0.35rem;
-    }
-
     .formset-form {
-        transition: all 0.3s ease;
         border: 1px solid #f1f3f5;
         border-left: 4px solid #0d6efd;
+        margin-bottom: 1rem;
+        padding: 1rem;
+        border-radius: 0.75rem;
+        background: #fff;
     }
-
-    .fade-in {
-        opacity: 0;
-        transform: translateY(10px);
-        transition: opacity 0.4s ease, transform 0.4s ease;
-    }
-    .fade-in.show {
-        opacity: 1;
-        transform: translateY(0);
-    }
-
-    .remove-form {
-        border-radius: 50%;
-        width: 32px;
-        height: 32px;
-        padding: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
     #formset-area {
         max-height: 400px;
         overflow-y: auto;
@@ -99,7 +59,7 @@
         <p class="page-subtitle">Remplissez les informations du client et ajoutez vos produits</p>
     </div>
 
-    <form method="post" class="needs-validation" novalidate>
+    <form method="post">
         {% csrf_token %}
 
         <!-- Partie Devis -->
@@ -113,9 +73,6 @@
                     <div class="col-md-6">
                         <label for="{{ field.id_for_label }}">{{ field.label }}</label>
                         {{ field|add_class:"form-control" }}
-                        {% if field.errors %}
-                        <div class="text-danger small">{{ field.errors }}</div>
-                        {% endif %}
                     </div>
                     {% endfor %}
                 </div>
@@ -126,17 +83,29 @@
         <div class="card mb-4">
             <div class="card-header text-white d-flex justify-content-between align-items-center fs-5">
                 <span><i class="bi bi-box-seam me-2"></i> Produits</span>
-                <!-- Bouton qui ouvre le modal -->
-                <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#productModal">
+                <button type="button" class="btn btn-success btn-sm"
+                        data-bs-toggle="modal" data-bs-target="#productModal">
                     <i class="bi bi-plus-circle"></i> Ajouter un produit
                 </button>
             </div>
             <div class="card-body" id="formset-area">
                 {{ formset.management_form }}
+                {% for form in formset %}
+                    <div class="formset-form">
+                        {% for field in form %}
+                            {% if field.name != "id" and field.name != "DELETE" %}
+                            <div class="mb-3">
+                                <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                                {{ field|add_class:"form-control" }}
+                            </div>
+                            {% endif %}
+                        {% endfor %}
+                        <button type="button" class="btn btn-danger btn-sm remove-form">Supprimer</button>
+                    </div>
+                {% endfor %}
             </div>
         </div>
 
-        <!-- Bouton sauvegarde -->
         <div class="text-center mb-5">
             <button type="submit" class="btn btn-primary btn-lg px-5 shadow-sm">
                 <i class="bi bi-save2"></i> Enregistrer le devis
@@ -145,16 +114,15 @@
     </form>
 </div>
 
-<!-- Modal pour ajouter un produit -->
-<div class="modal fade" id="productModal" tabindex="-1" aria-labelledby="productModalLabel" aria-hidden="true">
+<!-- Modal produit -->
+<div class="modal fade" id="productModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="productModalLabel">Ajouter un produit</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+        <h5 class="modal-title">Ajouter un produit</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
-        <!-- Contenu généré dynamiquement -->
         <div id="modal-product-form"></div>
       </div>
       <div class="modal-footer">
@@ -166,23 +134,17 @@
 </div>
 
 <!-- Template produit caché -->
-<div id="empty-product-template" style="display: none;">
-    <div class="formset-form p-4 mb-3 rounded-4 shadow-sm position-relative bg-white fade-in">
-        <div class="d-flex align-items-center mb-3">
-            <i class="bi bi-tag me-2 fs-4 text-primary"></i>
-            <h6 class="mb-0 fw-bold">Nouveau produit</h6>
-        </div>
+<div id="empty-product-template" style="display:none;">
+    <div class="formset-form">
         {% for field in formset.empty_form %}
             {% if field.name != "id" and field.name != "DELETE" %}
             <div class="mb-3">
-                <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                <label class="form-label">{{ field.label }}</label>
                 {{ field|add_class:"form-control" }}
             </div>
             {% endif %}
         {% endfor %}
-        <button type="button" class="btn btn-danger btn-sm remove-form position-absolute top-0 end-0 m-2">
-            <i class="bi bi-x-lg"></i>
-        </button>
+        <button type="button" class="btn btn-danger btn-sm remove-form">Supprimer</button>
     </div>
 </div>
 
@@ -193,41 +155,54 @@ document.addEventListener("DOMContentLoaded", function () {
     const template = document.getElementById("empty-product-template").innerHTML;
     const modalFormContainer = document.getElementById("modal-product-form");
     const saveBtn = document.getElementById("save-product");
+    const modalEl = document.getElementById("productModal");
 
-    // Quand on ouvre le modal : insérer un formulaire vide
-    document.getElementById("productModal").addEventListener("show.bs.modal", () => {
-        modalFormContainer.innerHTML = template;
+    // Injecter formulaire dans modal à l'ouverture
+    modalEl.addEventListener("show.bs.modal", () => {
+        modalFormContainer.innerHTML = template.replace(/__prefix__/g, totalForms.value);
     });
 
-    // Quand on clique sur "Ajouter" dans le modal
+    // Sauvegarder produit depuis modal
     saveBtn.addEventListener("click", () => {
-        const currentForms = parseInt(totalForms.value);
+        const index = parseInt(totalForms.value);
+
+        // récupérer le form rempli dans le modal
+        const modalForm = modalFormContainer.querySelector(".formset-form");
+
+        // cloner un template pour la zone principale
         const wrapper = document.createElement("div");
-        wrapper.innerHTML = modalFormContainer.innerHTML;
+        wrapper.innerHTML = template.replace(/__prefix__/g, index);
         const newForm = wrapper.firstElementChild;
 
-        newForm.querySelectorAll("input, select, textarea").forEach(el => {
-            const name = el.name.replace(/__prefix__/, currentForms);
-            el.name = name;
-            el.id = "id_" + name;
-            if (el.type !== "hidden") el.value = "";
-            if (el.type === "checkbox" || el.type === "radio") el.checked = false;
+        // copier les valeurs saisies du modal vers le nouveau formulaire
+        const modalFields = modalForm.querySelectorAll("input, select, textarea");
+        const newFields = newForm.querySelectorAll("input, select, textarea");
+
+        modalFields.forEach((modalField, i) => {
+            if (newFields[i]) {
+                newFields[i].value = modalField.value;
+            }
         });
 
+        // ajouter le nouveau formulaire dans la zone principale
         formsetArea.appendChild(newForm);
-        totalForms.value = parseInt(totalForms.value) + 1;
 
-        // Fermer le modal
-        const modalEl = document.getElementById("productModal");
-        const modalInstance = bootstrap.Modal.getInstance(modalEl);
-        modalInstance.hide();
+        // mettre à jour TOTAL_FORMS
+        totalForms.value = index + 1;
+
+        // vider le modal
+        modalFormContainer.innerHTML = "";
+
+        // fermer modal
+        bootstrap.Modal.getInstance(modalEl).hide();
     });
 
-    // Activer suppression
+    // Supprimer produit
     formsetArea.addEventListener("click", (e) => {
-        if (e.target.closest(".remove-form")) {
+        if (e.target.classList.contains("remove-form")) {
             e.target.closest(".formset-form").remove();
-            totalForms.value = formsetArea.querySelectorAll(".formset-form").length;
+            const count = formsetArea.querySelectorAll(".formset-form").length;
+            totalForms.value = count;
         }
     });
 });

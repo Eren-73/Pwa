@@ -12,7 +12,7 @@
                     <p><strong>Date :</strong> {{ devis.date_emission|date:"d/m/Y" }}</p>
                     <p><strong>Total HT :</strong> {{ devis.total_ht }}  CFA</p>
                     <p><strong>Remise :</strong> {{ devis.total_remise }}  CFA</p>
-                    <a href="{% url 'detail_devis' devis.id %}" class="btn-detail">Voir détails</a>
+                    <a href="{% url 'detail_devis' devis.slug %}" class="btn-detail">Voir détails</a>
                 </div>
             {% endfor %}
         </div>

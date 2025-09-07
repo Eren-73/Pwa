@@ -15,7 +15,7 @@ class LigneDevisForm(forms.ModelForm):
 class ClientForm(forms.ModelForm):
     class Meta:
         model = Client
-        fields = ["nom", "email", "telephone", "adresse"]  # 🔹 Ajout adresse
+        fields = ["nom","prenom", "email", "telephone", "adresse"]  # 🔹 Ajout adresse
 
 
 class ProduitForm(forms.ModelForm):

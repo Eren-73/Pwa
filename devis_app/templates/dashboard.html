@@ -39,13 +39,13 @@
             </div>
 
             <div class="card-body mt-2">
-                <h5 class="card-title">Devis {{ devis.numero_devis }}</h5>
+                <h2 class="card-title">Devis n° {{ devis.id }}</h2>
                 <p class="card-text">
                     <strong>Client :</strong> {{ devis.client }}<br>
                     <strong>Date :</strong> {{ devis.date_emission|date:"d/m/Y" }}<br>
                     <strong>Total TTC :</strong> {{ devis.total_ttc }} €
                 </p>
-                <a href="{% url 'devis_template' devis.pk %}" class="btn btn-success btn-sm">👁 Voir facture</a>
+                <a href="{% url 'devis_template'  slug=devis.slug  %}" class="btn btn-success btn-sm">👁 Voir facture</a>
             </div>
         </div>
     </div>
@@ -115,22 +115,35 @@ document.addEventListener('DOMContentLoaded', function() {
         toggleBtn();
     }
 
-    // Attacher les events sur toutes les checkboxes actuelles
     function attachCheckboxEvents() {
         getCheckboxes().forEach(chk => {
-            chk.removeEventListener('change', toggleBtn); // évite doublons
+            chk.removeEventListener('change', toggleBtn);
             chk.addEventListener('change', toggleBtn);
         });
     }
 
-    // Initialisation
+    // Fonction pour récupérer le CSRF token depuis le cookie
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            document.cookie.split(';').forEach(cookie => {
+                cookie = cookie.trim();
+                if (cookie.startsWith(name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                }
+            });
+        }
+        return cookieValue;
+    }
+    const csrftoken = getCookie('csrftoken');
+
     attachCheckboxEvents();
     toggleBtn();
 
     confirmDeleteBtn.addEventListener('click', function() {
         const selectedIds = Array.from(getCheckboxes())
                                  .filter(chk => chk.checked)
-                                 .map(chk => chk.value);
+                                 .map(chk => parseInt(chk.value));
 
         if(selectedIds.length === 0) return;
 
@@ -138,37 +151,50 @@ document.addEventListener('DOMContentLoaded', function() {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
-                "X-CSRFToken": "{{ csrf_token }}"
+                "X-CSRFToken": csrftoken
             },
             body: JSON.stringify({ devis_ids: selectedIds })
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) throw new Error("Erreur serveur " + response.status);
+            return response.json();
+        })
         .then(data => {
             if(data.success) {
-                // Supprime les cartes du DOM
+                // Supprimer les cartes du DOM
                 selectedIds.forEach(id => {
                     const card = document.querySelector('.devis-card[data-id="'+id+'"]');
                     if(card) card.remove();
                 });
 
-                // Ferme la modal
+                // Fermer le modal
                 const modal = bootstrap.Modal.getInstance(document.getElementById('confirmDeleteModal'));
-                modal.hide();
+                if(modal) modal.hide();
 
-                // Réinitialise les checkboxes
+                // Nettoyer le backdrop et scroll
+                document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+                document.body.classList.remove('modal-open');
+                document.body.style.overflow = 'auto';
+
                 resetCheckboxes();
                 attachCheckboxEvents();
 
-                // Affiche le toast
+                // Afficher le toast
                 const toastEl = document.getElementById('deleteToast');
-                const toast = new bootstrap.Toast(toastEl);
-                toast.show();
+                if(toastEl) {
+                    const toast = new bootstrap.Toast(toastEl);
+                    toast.show();
+                }
             } else {
                 alert("Erreur : " + (data.error || "Suppression échouée"));
             }
         })
-        .catch(() => alert("Erreur lors de la suppression."));
+        .catch(err => alert("Erreur lors de la suppression : " + err));
     });
 });
 </script>
+
+
+
+
 {% endblock %}

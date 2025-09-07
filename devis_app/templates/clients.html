@@ -52,7 +52,7 @@
         <div class="card shadow-sm h-100 border-info">
             <div class="card-body">
                 <h5 class="card-title">
-                    <a href="{% url 'devis_par_client' client.id %}" class="text-decoration-none text-primary">
+                    <a href="{% url 'devis_par_client' slug=client.slug %}" class="text-decoration-none text-primary">
                         {{ client.nom }} {{ client.prenom }}
                     </a>
                 </h5>
@@ -62,13 +62,13 @@
                 <p class="text-muted mb-2"><small>Ajouté le {{ client.date_creation|date:"d/m/Y" }}</small></p>
 
                 <div class="d-flex justify-content-end gap-2 actions-cell">
-                    <a href="{% url 'modifier_client' client.id %}" class="btn btn-warning btn-sm">✏️ Modifier</a>
-                    <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteModal" data-client-id="{{ client.id }}" data-client-nom="{{ client.nom }}">
+                    <a href="{% url 'modifier_client' slug=client.slug %}" class="btn btn-warning btn-sm">✏️ Modifier</a>
+                    <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteModal" data-client-id="{{ client.slug }}" data-client-nom="{{ client.nom }}">
                         🗑 Supprimer
                     </button>
                 </div>
             </div>
-        </div>
+        </div> 
     </div>
     {% empty %}
     <div class="col-12 text-center">

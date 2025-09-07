@@ -48,7 +48,7 @@
 <body>
     <div class="container">
         <h2>Modifier Client</h2>
-        <form method="POST" action="{% url 'modifier_client' client.id %}">
+        <form method="POST" action="{% url 'modifier_client' slug=client.slug %}">
             {% csrf_token %}
             <!-- ID caché pour identifier le client à modifier -->
             <input type="hidden" name="id" value="{{ client.id }}">
