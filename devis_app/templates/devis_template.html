@@ -16,6 +16,8 @@
             font-size: 12px;
             color: #000;
             margin: 0;
+            display: flex;
+            justify-content: center;
         }
         .page {
             width: 210mm;
@@ -50,6 +52,10 @@
             .top-buttons{
                 display: none !important;
             }
+            .page {
+                    padding: 10mm; /* un peu moins que 15mm */
+                    margin: 0 auto;
+                }
         }
 
         .header {
@@ -146,9 +152,16 @@
         .info-block p {
             margin: 0 15px;
         }
+
+
+
+
     </style>
 </head>
 <body>
+
+
+    </div>
     <div class="page">
 
         <!-- Boutons Retour, Imprimer et Exporter -->
@@ -162,7 +175,7 @@
                     ⬇ Exporter
                 </button>
                 <ul class="dropdown-menu">
-                    <li><a class="dropdown-item" href="#">PDF</a></li>
+                    <li><a class="dropdown-item" href="{% url 'export_pdf' devis.slug %}">PDF</a></li>
                     <li><a class="dropdown-item" href="#">Word</a></li>
                     <li><a class="dropdown-item" href="#">Excel</a></li>
                 </ul>
@@ -218,9 +231,9 @@
 
         <!-- Détail proposition -->
         <h2 style="display:flex; align-items:flex-start; margin-top:20px;">
-            <span style="font-weight:bold;">DÉTAIL DE LA PROPOSITION :</span>
+            <span style="font-weight:bold ;font-size:medium ;">DÉTAIL DE LA PROPOSITION :</span>
             {% if devis.detail_proposition %}
-            <span style="margin-left:10px; font-weight:normal; white-space: pre-line;">
+            <span style="margin-left:10px; font-weight:normal; white-space: pre-line;font-size: small;">
                 {{ devis.detail_proposition }}
             </span>
             {% else %}
@@ -238,7 +251,7 @@
                     <th style="padding: 6px; width: 15%;">Prix unitaire</th>
                     <th style="padding: 6px; width: 10%;">Remise</th>
                     <th style="padding: 6px; width: 10%;">P.U Net</th>
-                    <th style="padding: 6px; width: 15%; text-align: right;">Total TTC</th>
+                    <th style="padding: 6px; width: 15%; text-align: right;">Total </th>
                 </tr>
             </thead>
             <tbody>
@@ -247,10 +260,10 @@
                     <td style="padding: 6px; font-weight: bold;">{{ ligne.produit.nom }}</td>
                     <td style="padding: 6px;">{{ ligne.quantite }}</td>
                     <td style="padding: 6px;">{{ ligne.unite }}</td>
-                    <td style="padding: 6px;">{{ ligne.pu }} CFA</td>
+                    <td style="padding: 6px;">{{ ligne.pu }} </td>
                     <td style="padding: 6px;">{{ ligne.remise }} %</td>
-                    <td style="padding: 6px;">{{ ligne.pu_net }} CFA</td>
-                    <td style="padding: 6px; text-align: right;">{{ ligne.total_ttc }} CFA</td>
+                    <td style="padding: 6px;">{{ ligne.pu_net }} </td>
+                    <td style="padding: 6px; text-align: right;">{{ ligne.total_ttc }} </td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -262,30 +275,30 @@
         <table style="width: 40%; border-collapse: collapse; font-size: 12px; float: right; text-align: right;">
             <tr>
                 <td style="border: 1px solid black; padding: 5px; text-align: left;">Total HT</td>
-                <td style="border: 1px solid black; padding: 5px;">{{ devis.total_ht }} CFA</td>
+                <td style="border: 1px solid black; padding: 5px;">{{ devis.total_ht }} </td>
             </tr>
             <tr>
                 <td style="border: 1px solid black; padding: 5px; text-align: left;">Remise</td>
-                <td style="border: 1px solid black; padding: 5px;">{{ devis.total_remise }} CFA</td>
+                <td style="border: 1px solid black; padding: 5px;">{{ devis.total_remise }} </td>
             </tr>
             <tr>
                 <td style="border: 1px solid black; padding: 5px; text-align: left; font-weight: bold;">
                     TOTAL HT REMISE
                 </td>
                 <td style="border: 1px solid black; padding: 5px; font-weight: bold;">
-                    {{ devis.total_ht_remise }} CFA
+                    {{ devis.total_ht_remise }} 
                 </td>
             </tr>
             <tr>
-                <td style="border: 1px solid black; padding: 5px; text-align: left;">TVA {{ devis.tva }}%</td>
-                <td style="border: 1px solid black; padding: 5px;">{{ devis.total_ttc|floatformat:2 }} CFA</td>
+                <td style="border: 1px solid black; padding: 5px; text-align: left;">TVA 18%</td>
+                <td style="border: 1px solid black; padding: 5px;">{{ devis.total_tva|floatformat:2 }} </td>
             </tr>
             <tr>
                 <td style="border: 1px solid black; padding: 5px; text-align: left; font-weight: bold;">
                     TOTAL TTC
                 </td>
                 <td style="border: 1px solid black; padding: 5px; font-weight: bold; color: red;">
-                    {{ devis.total_ttc }} CFA
+                    {{ devis.total_ttc }} 
                 </td>
             </tr>
         </table>
@@ -296,18 +309,21 @@
         <p style="text-align:left; font-weight:bold;">
             *** {{ devis.total_ttc_lettres }} ***
         </p>
-
+        
         <div style="border: 1px solid #000; padding: 12px; font-size: 12px; line-height: 1.6; text-align: justify; margin-top:20px;">
-            <p style="margin:0;">
-                OFFRE VALABLE DANS LA LIMITE DES STOCKS DISPONIBLES.
-                <br />
-                Les prix proposés sont indicatifs et basés sur les indices économiques actuels, incluant des parités
-                monétaires susceptibles d'évoluer. Les prix définitifs sont ceux en vigueur au jour de la livraison,
-                en application de l'arrêté MAEF/AE n° 7531 du 31/10/1969. Nos prix indicatifs sont révisables en cas
-                de modification des tarifs fournisseurs, des taux de fret, des parités de change et de toutes autres
-                modifications qui pourraient intervenir d'ici la date de livraison.
+            <p style="margin-top:8px;">
+                <strong>Validité de l'offre :</strong> 1 Mois <br>
+                <strong>Exécution :</strong> 1 Mois <br>
+                <strong>Mode de règlement :</strong> 60% acompte et 40% à la livraison
             </p>
+            <p style="margin:0;">
+                Les prix indiqués tiennent exclusivement compte des modalités mentionnées ci-dessus. 
+                Toute modification pourrait donner lieu à un ajustement de notre offre initiale. 
+            </p>
+
         </div>
+
+
 
         <div style="text-align: right; margin-top: 60px;">
             <p><strong>Responsable Commercial</strong></p>

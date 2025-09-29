@@ -8,13 +8,12 @@ from django.http import JsonResponse
 from django.contrib import messages
 from django.views.decorators.csrf import csrf_exempt
 from django.template.loader import render_to_string
-# from docx import Document
-# from django.http import HttpResponse
+from docx import Document
+from django.http import HttpResponse
 
-# import weasyprint
-# import openpyxl
-# import json
-
+import weasyprint
+import openpyxl
+import json
 
 def creer_devis(request):
     LigneDevisFormSet = modelformset_factory(
@@ -26,29 +25,35 @@ def creer_devis(request):
         formset = LigneDevisFormSet(request.POST, queryset=LigneDevis.objects.none())
 
         if devis_form.is_valid() and formset.is_valid():
-            devis = devis_form.save()
-            
-            # Enregistrer chaque ligne de devis
+            devis = devis_form.save(commit=False)
+
+            # ✅ Vérifier si TVA doit être appliquée
+            apply_tva = request.POST.get("apply_tva", "no")
+
+            if apply_tva == "no":
+                devis.tva = 0  # Pas de TVA appliquée
+            # Sinon on garde la valeur saisie dans le form (ex: 18)
+
+            devis.save()
+
+            # ✅ Enregistrer chaque ligne de devis
             for form in formset:
                 if form.cleaned_data:  # éviter les lignes vides
                     ligne = form.save(commit=False)
                     ligne.devis = devis
                     ligne.save()
 
-            # ⚡ Utiliser l'IP locale de ton PC pour que le téléphone y accède
+            # ✅ Générer le lien public avec ton IP locale
             current_site_ip = "192.168.1.68"
             devis_url = f"http://{current_site_ip}:8000{reverse('devis_template', args=[devis.pk])}"
 
-
-            # Générer et enregistrer le QR code
+            # ✅ Générer et enregistrer le QR code
             print("Lien dans le QR :", devis_url)
             devis.qr_code.save(
                 f"qr_{devis.slug}.png",
                 generate_qr_code(devis.numero_devis),
                 save=True
             )
-
-
 
             return redirect('devis_template', slug=devis.slug)
 
@@ -61,10 +66,11 @@ def creer_devis(request):
         'formset': formset
     })
 
-def devis_template (request, slug):
+
+def devis_template(request, slug):
     devis = get_object_or_404(Devis, slug=slug)
     lignes = devis.lignes.all()
-    
+
     return render(request, 'devis_template.html', {
         'devis': devis,
         'lignes': lignes
@@ -204,30 +210,33 @@ def ajouter_produit(request):
 
 
 
-# def export_devis_word(request, slug):
-#     devis = get_object_or_404(Devis, slug=slug)
-#     doc = Document()
-#     doc.add_heading(f'Devis {devis.numero_devis}', 0)
-#     doc.add_paragraph(f'Client: {devis.client.nom} {devis.client.prenom}')
-#     doc.add_paragraph(f'Date: {devis.date_emission}')
-#     # ajouter les lignes de produits etc.
-#     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
-#     response['Content-Disposition'] = f'attachment; filename=Devis_{devis.numero_devis}.docx'
-#     doc.save(response)
-#     return response
+def export_pdf(request, slug):
+    from .models import Devis  # ajuste selon ton projet
+    devis = Devis.objects.get(slug=slug)
+    lignes = devis.lignes.all()
+
+    # Rendu du template HTML en string
+    html_string = render_to_string("devis_template.html", {"devis": devis, "lignes": lignes})
+
+    # Génération PDF avec WeasyPrint
+    pdf = weasyprint.HTML(string=html_string, base_url=request.build_absolute_uri()).write_pdf()
+
+    response = HttpResponse(pdf, content_type="application/pdf")
+    response["Content-Disposition"] = f'attachment; filename="devis_{devis.numero_devis}.pdf"'
+    return response
 
 
-# def export_devis_word(request, slug):
-#     devis = get_object_or_404(Devis, slug=slug)
-#     doc = Document()
-#     doc.add_heading(f'Devis {devis.numero_devis}', 0)
-#     doc.add_paragraph(f'Client: {devis.client.nom} {devis.client.prenom}')
-#     doc.add_paragraph(f'Date: {devis.date_emission}')
-#     # ajouter les lignes de produits etc.
-#     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
-#     response['Content-Disposition'] = f'attachment; filename=Devis_{devis.numero_devis}.docx'
-#     doc.save(response)
-#     return response
+def export_devis_word(request, slug):
+    devis = get_object_or_404(Devis, slug=slug)
+    doc = Document()
+    doc.add_heading(f'Devis {devis.numero_devis}', 0)
+    doc.add_paragraph(f'Client: {devis.client.nom} {devis.client.prenom}')
+    doc.add_paragraph(f'Date: {devis.date_emission}')
+    # ajouter les lignes de produits etc.
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+    response['Content-Disposition'] = f'attachment; filename=Devis_{devis.numero_devis}.docx'
+    doc.save(response)
+    return response
 
 
 

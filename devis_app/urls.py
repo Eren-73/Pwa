@@ -27,8 +27,8 @@ urlpatterns = [
     path('categorie/ajouter/', views.ajouter_categorie, name='ajouter_categorie'),
 
      # ---- Import ----
-    # path('devis/<slug:slug>/export/pdf/', views.export_devis_pdf, name='export_devis_pdf'),
-    # path('devis/<slug:slug>/export/word/', views.export_devis_word, name='export_devis_word'),
-    # path('devis/<slug:slug>/export/excel/', views.export_devis_excel, name='export_devis_excel'),
+    path("clients/<slug:slug>/export/pdf/", views.export_pdf, name="export_pdf"),
+    path('devis/<slug:slug>/export/word/', views.export_devis_word, name='export_devis_word'),
+    path('devis/<slug:slug>/export/excel/', views.export_devis_excel, name='export_devis_excel'),
 
 ]

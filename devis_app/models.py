@@ -3,6 +3,7 @@ from django.utils.timezone import now
 from django.utils.text import slugify
 from datetime import timedelta
 import uuid
+from django.db.models import Max
 
 from .utils import  generate_qr_code,nombre_en_lettres
 from decimal import Decimal,ROUND_HALF_UP
@@ -69,12 +70,14 @@ from django.utils.timezone import now
 from django.utils.crypto import get_random_string
 from decimal import Decimal, ROUND_HALF_UP
 
+
 class Devis(models.Model):
     numero_devis = models.CharField(max_length=20, unique=True, blank=True)
     date_emission = models.DateField(default=now)
     date_validite = models.DateField(default=default_date_validite)
     date_proforma = models.DateField(default=now)
-    regime_vente = models.CharField(max_length=10, default="TTC")
+    appliquer_tva = models.BooleanField(default=True)  # <---- Nouveau champ
+    regime_vente = models.CharField(max_length=50, default="TTC (CFA)")
     detail_proposition = models.TextField(default='', null=True, blank=True)
     slug = models.SlugField(max_length=100, unique=True, blank=True)
 
@@ -82,6 +85,7 @@ class Devis(models.Model):
     total_remise = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'))
     total_ht_remise = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'))
     tva = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal('18.00'))
+    total_tva = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'))  # <--- Ajouté
     total_ttc = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'))
     total_ttc_lettres = models.CharField(max_length=255, blank=True, default='')
 
@@ -89,43 +93,65 @@ class Devis(models.Model):
     client = models.ForeignKey('Client', on_delete=models.SET_NULL, null=True, blank=True, related_name="devis")
 
     def save(self, *args, **kwargs):
-        # Générer un numéro unique si vide
+        # --- Génération numéro devis (inchangé) ---
         if not self.numero_devis:
-            base = "DEVIS"
-            unique_num = f"{base}-{get_random_string(6)}"
-            while Devis.objects.filter(numero_devis=unique_num).exists():
-                unique_num = f"{base}-{get_random_string(6)}"
-            self.numero_devis = unique_num
+            today = now().date()
+            year, month, day = today.year, today.month, today.day
 
-        # Générer un slug si vide
+            last_devis = Devis.objects.filter(
+                date_emission__year=year,
+                date_emission__month=month,
+                date_emission__day=day
+            ).aggregate(Max('numero_devis'))['numero_devis__max']
+
+            if last_devis:
+                try:
+                    last_counter = int(last_devis.split('-')[-1])
+                except (IndexError, ValueError):
+                    last_counter = 0
+                counter = last_counter + 1
+            else:
+                counter = 1
+
+            self.numero_devis = f"{year}-{month:02d}-{day:02d}-{counter:05d}"
+
         if not self.slug:
             self.slug = slugify(self.numero_devis)
 
-        super().save(*args, **kwargs)  # 1ère sauvegarde pour avoir un PK
+        super().save(*args, **kwargs)
 
-        # Calculer les totaux si lignes présentes
+        # --- Calcul des totaux ---
         if hasattr(self, 'lignes'):
             lignes = self.lignes.all()
-            total_ht = sum((l.total_ht for l in lignes), Decimal('0.00'))
-            total_remise = sum(((l.pu * l.quantite) - l.total_ht) for l in lignes) if lignes else Decimal('0.00')
 
-            self.total_ht = total_ht.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+            total_ht_brut = sum((l.pu * l.quantite) for l in lignes) if lignes else Decimal('0.00')
+            total_remise = sum(((l.pu * l.quantite) - l.total_ht) for l in lignes) if lignes else Decimal('0.00')
+            total_ht_net = total_ht_brut - total_remise
+
+            # Appliquer TVA seulement si appliquer_tva = True
+            if self.appliquer_tva:
+                tva_amount = (total_ht_net * (self.tva / Decimal('100'))).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+            else:
+                tva_amount = Decimal('0.00')
+
+            total_ttc = total_ht_net + tva_amount
+
+            self.total_ht = total_ht_brut.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
             self.total_remise = total_remise.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
-            self.total_ht_remise = self.total_ht
-            self.total_ttc = (self.total_ht * (Decimal('1') + self.tva / Decimal('100'))).quantize(
-                Decimal('0.01'), rounding=ROUND_HALF_UP
-            )
+            self.total_ht_remise = total_ht_net.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+            self.total_tva = tva_amount
+            self.total_ttc = total_ttc.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
             self.total_ttc_lettres = nombre_en_lettres(self.total_ttc)
 
-            # Générer QR code
             qr_image = generate_qr_code(self.numero_devis)
             if qr_image:
                 self.qr_code.save(f"qr_{self.slug}.png", qr_image, save=False)
 
             super().save(update_fields=[
                 'total_ht', 'total_remise', 'total_ht_remise',
-                'total_ttc', 'total_ttc_lettres', 'qr_code'
+                'total_tva', 'total_ttc', 'total_ttc_lettres', 'qr_code'
             ])
+
 
     def __str__(self):
         return f"{self.numero_devis} - {self.client.nom if self.client else 'Sans client'}"

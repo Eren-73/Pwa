@@ -43,7 +43,7 @@
                 <p class="card-text">
                     <strong>Client :</strong> {{ devis.client }}<br>
                     <strong>Date :</strong> {{ devis.date_emission|date:"d/m/Y" }}<br>
-                    <strong>Total TTC :</strong> {{ devis.total_ttc }} €
+                    <strong>Total TTC :</strong> {{ devis.total_ttc }} CFA
                 </p>
                 <a href="{% url 'devis_template'  slug=devis.slug  %}" class="btn btn-success btn-sm">👁 Voir facture</a>
             </div>

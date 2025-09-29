@@ -75,6 +75,15 @@
                         {{ field|add_class:"form-control" }}
                     </div>
                     {% endfor %}
+
+                    <!-- Sélecteur pour appliquer la TVA -->
+                    <div class="col-md-6">
+                        <label for="apply_tva">Appliquer la TVA ?</label>
+                        <select name="apply_tva" id="apply_tva" class="form-control">
+                            <option value="no" selected>Non</option>
+                            <option value="yes">Oui</option>
+                        </select>
+                    </div>
                 </div>
             </div>
         </div>
