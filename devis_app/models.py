@@ -151,7 +151,7 @@ class Devis(models.Model):
                 'total_ht', 'total_remise', 'total_ht_remise',
                 'total_tva', 'total_ttc', 'total_ttc_lettres', 'qr_code'
             ])
-
+ 
 
     def __str__(self):
         return f"{self.numero_devis} - {self.client.nom if self.client else 'Sans client'}"
