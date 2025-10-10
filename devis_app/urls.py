@@ -1,5 +1,6 @@
-from django.urls import path
+from django.urls import path,include 
 from . import views
+from django.contrib.auth import views as auth_views  # 🔹 Import correct de Django
 
 urlpatterns = [
     path('', views.dashboard, name='dashboard'),
@@ -31,4 +32,12 @@ urlpatterns = [
     path('devis/<slug:slug>/export/word/', views.export_devis_word, name='export_devis_word'),
     path('devis/<slug:slug>/export/excel/', views.export_devis_excel, name='export_devis_excel'),
 
+
+    #---Authentification---#
+
+    # ✅ Correct
+    path('login/', auth_views.LoginView.as_view(template_name='Authentification/login.html'), name='login'),
+    path('logout/', auth_views.LogoutView.as_view(next_page='login'), name='logout'),
+
 ]
+

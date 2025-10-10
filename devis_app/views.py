@@ -10,11 +10,14 @@ from django.views.decorators.csrf import csrf_exempt
 from django.template.loader import render_to_string
 from docx import Document
 from django.http import HttpResponse
+from django.contrib.auth.decorators import login_required  # 🔹 AJOUT
+from django.contrib.auth.models import User
 
 import weasyprint
 import openpyxl
 import json
 
+@login_required(login_url='login')
 def creer_devis(request):
     LigneDevisFormSet = modelformset_factory(
         LigneDevis, form=LigneDevisForm, extra=0, can_delete=True
@@ -27,27 +30,30 @@ def creer_devis(request):
         if devis_form.is_valid() and formset.is_valid():
             devis = devis_form.save(commit=False)
 
-            # ✅ Vérifier si TVA doit être appliquée
-            apply_tva = request.POST.get("apply_tva", "no")
+            # 🔹 Lier le devis à l’utilisateur connecté
+            devis.utilisateur = request.user  # assure-toi que ton modèle a ce champ
 
+            # ✅ Vérifier si TVA doit être appliquée
+            apply_tva = request.POST.get("apply_tva", "yes")
             if apply_tva == "no":
-                devis.tva = 0  # Pas de TVA appliquée
-            # Sinon on garde la valeur saisie dans le form (ex: 18)
+                devis.appliquer_tva = False
+            else:
+                devis.appliquer_tva = True
 
             devis.save()
 
-            # ✅ Enregistrer chaque ligne de devis
+            # ✅ Enregistrer chaque ligne
             for form in formset:
-                if form.cleaned_data:  # éviter les lignes vides
+                if form.cleaned_data:
                     ligne = form.save(commit=False)
                     ligne.devis = devis
                     ligne.save()
 
-            # ✅ Générer le lien public avec ton IP locale
+            # ✅ Générer le lien public
             current_site_ip = "192.168.1.68"
             devis_url = f"http://{current_site_ip}:8000{reverse('devis_template', args=[devis.pk])}"
 
-            # ✅ Générer et enregistrer le QR code
+            # ✅ Générer le QR code
             print("Lien dans le QR :", devis_url)
             devis.qr_code.save(
                 f"qr_{devis.slug}.png",
@@ -57,15 +63,18 @@ def creer_devis(request):
 
             return redirect('devis_template', slug=devis.slug)
 
-    else:  # GET
+    else:
         devis_form = DevisForm()
         formset = LigneDevisFormSet(queryset=LigneDevis.objects.none())
 
+    # 🔹 Nombre total de devis créés par l’utilisateur connecté
+    nombre_devis = Devis.objects.filter(utilisateur=request.user).count()
+
     return render(request, 'creer_devis.html', {
         'devis_form': devis_form,
-        'formset': formset
+        'formset': formset,
+        'nombre_devis': nombre_devis,  # ➕ tu peux l'afficher dans ton template
     })
-
 
 def devis_template(request, slug):
     devis = get_object_or_404(Devis, slug=slug)

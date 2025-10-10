@@ -39,9 +39,9 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'devis_app',
     'widget_tweaks',
-     "django_extensions",
+    "django_extensions",
+    'devis_app.apps.DevisAppConfig',
 ]
 
 MIDDLEWARE = [

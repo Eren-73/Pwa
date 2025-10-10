@@ -8,6 +8,21 @@ from django.db.models import Max
 from .utils import  generate_qr_code,nombre_en_lettres
 from decimal import Decimal,ROUND_HALF_UP
 from django.utils.crypto import get_random_string
+from django.contrib.auth.models import User
+from django.db import models
+from django.contrib.auth.models import User
+
+
+class Profile(models.Model):
+    ROLE_CHOICES = (
+        ('admin', 'Admin'),
+        ('commercial', 'Commercial'),
+    )
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES)
+
+    def __str__(self):
+        return f"{self.user.username} - {self.role}"
 
 
 class Categorie(models.Model):
@@ -72,6 +87,7 @@ from decimal import Decimal, ROUND_HALF_UP
 
 
 class Devis(models.Model):
+    utilisateur = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
     numero_devis = models.CharField(max_length=20, unique=True, blank=True)
     date_emission = models.DateField(default=now)
     date_validite = models.DateField(default=default_date_validite)
@@ -91,7 +107,8 @@ class Devis(models.Model):
 
     qr_code = models.ImageField(upload_to='qrcodes/', blank=True, null=True)
     client = models.ForeignKey('Client', on_delete=models.SET_NULL, null=True, blank=True, related_name="devis")
-
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name="devis_utilisateur")
+    
     def save(self, *args, **kwargs):
         # --- Génération numéro devis (inchangé) ---
         if not self.numero_devis:
@@ -190,3 +207,20 @@ class LigneDevis(models.Model):
 
     def __str__(self):
         return f"{self.quantite} {self.unite}"
+    
+
+
+
+class ActionCommercial(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    action = models.CharField(max_length=255)
+    date_action = models.DateTimeField(auto_now_add=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.user.username} - {self.action} ({self.date_action.strftime('%d/%m/%Y %H:%M')})"
+
+    class Meta:
+        verbose_name = "Action du commercial"
+        verbose_name_plural = "Actions des commerciaux"
+        ordering = ['-date_action']
