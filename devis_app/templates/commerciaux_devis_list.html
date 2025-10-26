@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="m-0">Liste des commerciaux et leurs devis</h2>
+    <a href="{% url 'create_commercial' %}" class="btn btn-sm btn-primary">Créer un commercial</a>
+  </div>
+
+  {% if commerciaux %}
+    <div class="accordion" id="commercantsAccordion">
+      {% for user in commerciaux %}
+        <div class="card mb-2">
+          <div class="card-header p-2 d-flex justify-content-between align-items-center">
+            <div>
+              <strong>{{ user.get_full_name|default:user.username }}</strong>
+              <div class="text-muted small">Username: {{ user.username }}</div>
+            </div>
+            <div class="text-end">
+              <div class="small text-muted">Dernière connexion:
+                {% if user.last_login %}
+                  {{ user.last_login|date:"d/m/Y H:i" }}
+                {% else %}
+                  jamais
+                {% endif %}
+              </div>
+              <button class="btn btn-sm btn-outline-primary mt-1" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ forloop.counter }}" aria-expanded="false" aria-controls="collapse{{ forloop.counter }}">
+                Voir les devis ({{ user.devis.count }})
+              </button>
+            </div>
+          </div>
+
+          <div id="collapse{{ forloop.counter }}" class="collapse" data-bs-parent="#commercantsAccordion">
+            <div class="card-body">
+              {% if user.devis.all %}
+                <div class="table-responsive">
+                  <table class="table table-sm table-striped">
+                    <thead>
+                      <tr>
+                        <th>Numéro</th>
+                        <th>Date émission</th>
+                        <th>Client</th>
+                        <th>Montant TTC</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for devis in user.devis.all|dictsortreversed:"date_emission" %}
+                        <tr>
+                          <td>{{ devis.numero_devis }}</td>
+                          <td>{{ devis.date_emission|date:"d/m/Y" }}</td>
+                          <td>{{ devis.client }}</td>
+                          <td>{{ devis.total_ttc }} €</td>
+                          <td><a class="btn btn-sm btn-outline-secondary" href="{% url 'detail_devis' devis.slug %}">Voir</a></td>
+                        </tr>
+                      {% empty %}
+                        <tr><td colspan="5" class="text-muted">Aucun devis pour ce commercial.</td></tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+                <hr>
+                <h6>Actions récentes</h6>
+                {% with actions=user.actioncommercial_set.all|slice:":5" %}
+                  {% if actions %}
+                    <ul class="list-unstyled small">
+                      {% for act in actions %}
+                        <li>{{ act.date_action|date:"d/m/Y H:i" }} — {{ act.action }} {% if act.ip_address %} <span class="text-muted">({{ act.ip_address }})</span>{% endif %}</li>
+                      {% endfor %}
+                    </ul>
+                  {% else %}
+                    <p class="text-muted small mb-0">Aucune action enregistrée.</p>
+                  {% endif %}
+                {% endwith %}
+              {% else %}
+                <p class="text-muted mb-0">Aucun devis pour ce commercial.</p>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="text-muted">Aucun commercial trouvé.</p>
+  {% endif %}
+
+</div>
+{% endblock %}

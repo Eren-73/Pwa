@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="m-0">Points de vente</h2>
+    <a href="{% url 'ajouter_point_vente' %}" class="btn btn-sm btn-primary">Ajouter un point de vente</a>
+  </div>
+
+  {% if points %}
+    <div class="table-responsive">
+      <table class="table table-sm table-striped">
+        <thead>
+          <tr>
+            <th>Nom</th>
+            <th>Adresse</th>
+            <th>Téléphone</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in points %}
+            <tr>
+              <td>{{ p.nom }}</td>
+              <td>{{ p.adresse }}</td>
+              <td>{{ p.telephone }}</td>
+              <td class="text-end">
+                <a href="{% url 'modifier_point_vente' p.pk %}" class="btn btn-sm btn-outline-secondary">Modifier</a>
+                <a href="{% url 'supprimer_point_vente' p.pk %}" class="btn btn-sm btn-outline-danger">Supprimer</a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="text-muted">Aucun point de vente trouvé.</p>
+  {% endif %}
+</div>
+{% endblock %}

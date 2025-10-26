@@ -1,0 +1,214 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-5">
+    <!-- En-tête -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="m-0">
+                <i class="bi bi-shield-lock me-2"></i>
+                Dashboard Administrateur
+            </h2>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+            <div class="text-muted">
+                <i class="bi bi-calendar3"></i>
+                {{ devis_mois_actuel }} devis ce mois
+            </div>
+            <a href="{% url 'liste_point_ventes' %}" class="btn btn-sm btn-outline-primary">Points de vente</a>
+        </div>
+    </div>
+
+    <!-- Cartes statistiques -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="text-muted mb-2">Total Devis</h6>
+                            <h3 class="mb-0">{{ total_devis }}</h3>
+                        </div>
+                        <div class="text-primary">
+                            <i class="bi bi-file-text h1"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="text-muted mb-2">Total Clients</h6>
+                            <h3 class="mb-0">{{ total_clients }}</h3>
+                        </div>
+                        <div class="text-success">
+                            <i class="bi bi-people h1"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="text-muted mb-2">Total Produits</h6>
+                            <h3 class="mb-0">{{ total_produits }}</h3>
+                        </div>
+                        <div class="text-warning">
+                            <i class="bi bi-box-seam h1"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="text-muted mb-2">CA du mois</h6>
+                            <h3 class="mb-0">{{ montant_total_mois|floatformat:2 }}CFA</h3>
+                        </div>
+                        <div class="text-info">
+                            <i class="bi bi-graph-up h1"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Graphique et Top Clients -->
+    <div class="row g-4">
+        <div class="col-md-8">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title mb-4">Évolution des devis (6 derniers mois)</h5>
+                    <canvas id="devisChart" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 d-flex flex-column gap-4">
+            <!-- Card Top Clients -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title mb-4">Top 5 Clients</h5>
+                    <div class="list-group list-group-flush">
+                        {% for client in top_clients %}
+                        <div class="list-group-item border-0 px-0">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-1">{{ client.nom }} {{ client.prenom }}</h6>
+                                    <small class="text-muted">{{ client.nb_devis }} devis</small>
+                                </div>
+                                <a href="{% url 'devis_par_client' client.slug %}" 
+                                   class="btn btn-sm btn-outline-primary">
+                                    Voir les devis
+                                </a>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <p class="text-muted mb-0">Aucun client pour le moment</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card Commerciaux -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h5 class="card-title m-0">Commerciaux actifs</h5>
+                        <a href="{% url 'commerciaux_devis_list' %}" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-people me-2"></i>Voir tous
+                        </a>
+                    </div>
+                    <div class="list-group list-group-flush">
+                        {% for commercial in top_commerciaux %}
+                        <div class="list-group-item border-0 px-0">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-1">{{ commercial.get_full_name|default:commercial.username }}</h6>
+                                    <small class="text-muted">
+                                        {{ commercial.nb_devis }} devis
+                                        {% if commercial.total_ca %}
+                                        • {{ commercial.total_ca|floatformat:2 }} €
+                                        {% endif %}
+                                    </small>
+                                </div>
+                                <span class="badge bg-{% if commercial.last_login|date:'Y-m-d' == today %}success{% else %}secondary{% endif %}">
+                                    {% if commercial.last_login %}
+                                        {{ commercial.last_login|date:"d/m/Y" }}
+                                    {% else %}
+                                        Jamais connecté
+                                    {% endif %}
+                                </span>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <p class="text-muted mb-0">Aucun commercial pour le moment</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ labels|json_script:"labels-data" }}
+{{ data|json_script:"chart-data" }}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('devisChart').getContext('2d');
+    const chartLabels = JSON.parse(document.getElementById('labels-data').textContent);
+    const chartData = JSON.parse(document.getElementById('chart-data').textContent);
+
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: chartLabels,
+            datasets: [{
+                label: 'Nombre de devis',
+                data: chartData,
+                fill: true,
+                borderColor: 'rgb(75, 192, 192)',
+                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                tension: 0.3
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'top',
+                },
+                title: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    }
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

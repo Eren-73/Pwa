@@ -13,6 +13,14 @@ from django.db import models
 from django.contrib.auth.models import User
 
 
+class PointVente(models.Model):
+    nom = models.CharField(max_length=100)
+    adresse = models.CharField(max_length=255, blank=True, null=True)
+    telephone = models.CharField(max_length=20, blank=True, null=True)
+
+    def __str__(self):
+        return self.nom
+
 class Profile(models.Model):
     ROLE_CHOICES = (
         ('admin', 'Admin'),
@@ -20,6 +28,7 @@ class Profile(models.Model):
     )
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     role = models.CharField(max_length=20, choices=ROLE_CHOICES)
+    point_vente = models.ForeignKey(PointVente, on_delete=models.SET_NULL, null=True, blank=True)
 
     def __str__(self):
         return f"{self.user.username} - {self.role}"
@@ -87,13 +96,22 @@ from decimal import Decimal, ROUND_HALF_UP
 
 
 class Devis(models.Model):
-    utilisateur = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    # Main user reference - for the commercial who created the devis
+    utilisateur = models.ForeignKey(User, on_delete=models.CASCADE, related_name="devis", null=True, blank=True)
+    point_vente = models.ForeignKey(PointVente, on_delete=models.SET_NULL, null=True, blank=True)
     numero_devis = models.CharField(max_length=20, unique=True, blank=True)
     date_emission = models.DateField(default=now)
     date_validite = models.DateField(default=default_date_validite)
     date_proforma = models.DateField(default=now)
     appliquer_tva = models.BooleanField(default=True)  # <---- Nouveau champ
-    regime_vente = models.CharField(max_length=50, default="TTC (CFA)")
+    REGIME_CHOICES = [
+        ('TTC (CFA)', 'TTC (CFA)'),
+    ]
+    regime_vente = models.CharField(
+        max_length=50, 
+        choices=REGIME_CHOICES,
+        default="TTC (CFA)"
+    )
     detail_proposition = models.TextField(default='', null=True, blank=True)
     slug = models.SlugField(max_length=100, unique=True, blank=True)
 
@@ -107,7 +125,6 @@ class Devis(models.Model):
 
     qr_code = models.ImageField(upload_to='qrcodes/', blank=True, null=True)
     client = models.ForeignKey('Client', on_delete=models.SET_NULL, null=True, blank=True, related_name="devis")
-    created_by = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name="devis_utilisateur")
     
     def save(self, *args, **kwargs):
         # --- Génération numéro devis (inchangé) ---

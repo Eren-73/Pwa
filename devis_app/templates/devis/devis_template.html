@@ -93,17 +93,20 @@
             gap: 15px;
             margin-top: 12px;
             align-items: flex-start;
+            justify-content: space-between;
         }
         .box {
             border: 1px solid #000;
-            padding: 10px 12px;
-            min-height: 100px;
+            padding: 12px;
+            min-height: 120px;
             flex: 1;
             line-height: 1.6;
             background-color: #fff;
+            max-width: calc(40% - 10px);
+            box-sizing: border-box;
         }
-        .box.client { flex: 2; }
-        .box.conseiller { flex: 1.5; }
+        .box.client { flex: 1; }
+        .box.conseiller { flex: 1; }
         .box-title {
             font-weight: bold;
             display:block;
@@ -126,14 +129,16 @@
             align-items: center;
             justify-content: flex-start;
             margin-left: 20px;
+            flex: 0 0 120px;
         }
         .qr-wrapper img {
             width: 115px;
             height: 115px;
-            object-fit: cover;
+            object-fit: contain;
             border: 1px solid #000;
             padding: 2px;
             background: #fff;
+            display: block;
         }
         .qr-code {
             margin-top: 8px;
@@ -176,8 +181,8 @@
                 </button>
                 <ul class="dropdown-menu">
                     <li><a class="dropdown-item" href="{% url 'export_pdf' devis.slug %}">PDF</a></li>
-                    <li><a class="dropdown-item" href="#">Word</a></li>
-                    <li><a class="dropdown-item" href="#">Excel</a></li>
+                    <li><a class="dropdown-item" href="{% url 'export_devis_word' devis.slug %}">Word</a></li>
+                    <li><a class="dropdown-item" href="{% url 'export_devis_excel' devis.slug %}">Excel</a></li>
                 </ul>
             </div>
         </div>
@@ -208,15 +213,19 @@
             </div>
             <div class="box conseiller">
                 <span class="box-title">Votre conseiller commercial</span>
-                <p>Point de vente: _______________</p>
-                <p>Mobile: ______________________</p>
-                <p>Email: _______________________</p>
+                {% if devis.utilisateur %}
+                    <p>Nom: {{ devis.utilisateur.first_name }} {{ devis.utilisateur.last_name }}</p>
+                    <p>Email: {{ devis.utilisateur.email }}</p>
+                    <p>Point de vente: {{ devis.point_vente.nom|default:"Non assigné" }}</p>
+                {% else %}
+                    <p>Commercial non assigné</p>
+                {% endif %}
             </div>
             <div class="qr-wrapper">
-                {% if devis.qr_code %}
-                <img src="{{ devis.qr_code.url }}" alt="QR Code" />
+                {% if qr_code_url %}
+                <img src="{{ qr_code_url }}" alt="QR Code" style="width: 115px; height: 115px;" />
                 {% else %}
-                <img src="qrcode.png" alt="QR Code" />
+                <img src="{{ logo_url }}" alt="QR Code" style="width: 115px; height: 115px;" />
                 {% endif %}
                 <div class="qr-code">CODE: {{ devis.numero_devis }}</div>
             </div>
@@ -327,7 +336,10 @@
 
         <div style="text-align: right; margin-top: 60px;">
             <p><strong>Responsable Commercial</strong></p>
-            <br /><br />
+            {% if devis.utilisateur %}
+                <p>{{ devis.utilisateur.get_full_name }}</p>
+            {% endif %}
+            <br />
             <p><strong>Signature et cachet</strong></p>
         </div>
 

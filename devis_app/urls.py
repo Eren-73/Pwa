@@ -34,10 +34,24 @@ urlpatterns = [
 
 
     #---Authentification---#
+    path('login/', auth_views.LoginView.as_view(
+        template_name='Authentification/login.html',
+        redirect_authenticated_user=True
+    ), name='login'),
+    
+    path('logout/', auth_views.LogoutView.as_view(
+        next_page='login'
+    ), name='logout'),
 
-    # ✅ Correct
-    path('login/', auth_views.LoginView.as_view(template_name='Authentification/login.html'), name='login'),
-    path('logout/', auth_views.LogoutView.as_view(next_page='login'), name='logout'),
 
+    #---DASHBOARD---#
+    path('admin-dashboard/', views.admin_dashboard, name='admin_dashboard'),
+    path('commerciaux/', views.commerciaux_devis_list, name='commerciaux_devis_list'),
+    path('commerciaux/creer/', views.create_commercial, name='create_commercial'),
+    # Points de vente CRUD
+    path('points-vente/', views.liste_point_ventes, name='liste_point_ventes'),
+    path('points-vente/ajouter/', views.ajouter_point_vente, name='ajouter_point_vente'),
+    path('points-vente/modifier/<int:pk>/', views.modifier_point_vente, name='modifier_point_vente'),
+    path('points-vente/supprimer/<int:pk>/', views.supprimer_point_vente, name='supprimer_point_vente'),
 ]
 

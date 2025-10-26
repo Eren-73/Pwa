@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-bm-^&9^9a&xauc!w4+2*v&*2f#@0m_4m=krli61q3)k$tzu4b9
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['192.168.1.68', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['192.168.1.68', 'localhost', '127.0.0.1','192.168.1.76']
 
 
 
@@ -59,10 +59,12 @@ ROOT_URLCONF = 'Devis.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
+                
+                'django.template.context_processors.debug',
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
@@ -134,3 +136,7 @@ SITE_URL = "http://127.0.0.1:8000"
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Auth settings
+LOGIN_REDIRECT_URL = 'dashboard'
+LOGOUT_REDIRECT_URL = 'login'
