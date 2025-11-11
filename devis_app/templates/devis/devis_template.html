@@ -48,6 +48,53 @@
         .top-buttons button:hover, .top-buttons .dropdown-toggle:hover {
             background-color: #dcdcdc;
         }
+        /* Styles responsive pour mobile */
+        @media screen and (max-width: 768px) {
+            body {
+                font-size: 10px;
+            }
+            .page {
+                width: 100%;
+                min-height: auto;
+                padding: 10px;
+            }
+            .top-buttons {
+                flex-wrap: wrap;
+                gap: 5px;
+            }
+            .top-buttons button, .top-buttons .dropdown-toggle {
+                padding: 8px 12px;
+                font-size: 12px;
+            }
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .header-logo img {
+                height: 50px;
+                margin-bottom: 10px;
+            }
+            .parties {
+                flex-direction: column;
+                gap: 10px;
+            }
+            .box {
+                max-width: 100%;
+                width: 100%;
+            }
+            .qr-wrapper {
+                margin-left: 0;
+                margin-top: 15px;
+                flex: 1;
+            }
+            table {
+                font-size: 9px;
+            }
+            th, td {
+                padding: 5px 3px !important;
+            }
+        }
+        
         @media print{
             .top-buttons{
                 display: none !important;
@@ -209,6 +256,7 @@
                 <span class="box-title">Client</span>
                 <p>Nom: {{ devis.client.nom }} {{ devis.client.prenom }}</p>
                 <p>Email: {{ devis.client.email }}</p>
+                <p>Téléphone: {{ devis.client.telephone|default:"Non renseigné" }}</p>
                 <p>Adresse: {{ devis.client.adresse }}</p>
             </div>
             <div class="box conseiller">
@@ -216,16 +264,19 @@
                 {% if devis.utilisateur %}
                     <p>Nom: {{ devis.utilisateur.first_name }} {{ devis.utilisateur.last_name }}</p>
                     <p>Email: {{ devis.utilisateur.email }}</p>
+                    <p>Téléphone: {{ devis.utilisateur.profile.telephone|default:"Non renseigné" }}</p>
                     <p>Point de vente: {{ devis.point_vente.nom|default:"Non assigné" }}</p>
                 {% else %}
                     <p>Commercial non assigné</p>
                 {% endif %}
             </div>
             <div class="qr-wrapper">
-                {% if qr_code_url %}
-                <img src="{{ qr_code_url }}" alt="QR Code" style="width: 115px; height: 115px;" />
+                {% if devis.qr_code %}
+                <img src="{{ devis.qr_code.url }}" alt="QR Code pour scanner le devis" style="width: 115px; height: 115px;" />
                 {% else %}
-                <img src="{{ logo_url }}" alt="QR Code" style="width: 115px; height: 115px;" />
+                <div style="width: 115px; height: 115px; border: 2px dashed #ccc; display: flex; align-items: center; justify-content: center; text-align: center; font-size: 10px;">
+                    QR Code<br>Non généré
+                </div>
                 {% endif %}
                 <div class="qr-code">CODE: {{ devis.numero_devis }}</div>
             </div>

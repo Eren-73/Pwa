@@ -1,7 +1,9 @@
 from django.contrib import admin
-from .models import Devis, LigneDevis, Produit, Categorie, Client,ActionCommercial
+from .models import Devis, LigneDevis, Produit, Categorie, Client, ActionCommercial, Profile, PointVente
 from django.utils.html import format_html
 from django.db.models import Count
+from django.contrib.auth.models import User
+from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 
 
 # 🔹 Inline pour afficher les lignes de devis directement dans l'admin Devis
@@ -45,9 +47,60 @@ class ActionCommercialAdmin(admin.ModelAdmin):
 
     def nombre_devis(self, obj):
         # Compte le nombre total de devis créés par cet utilisateur
-        return obj.user.devis_utilisateur.count()  
+        return obj.user.devis.count()  
     nombre_devis.short_description = "Nombre de devis"
 
+
+# 🔹 Admin pour le modèle Profile (Commerciaux)
+class ProfileInline(admin.StackedInline):
+    model = Profile
+    can_delete = False
+    verbose_name_plural = 'Profil'
+    fields = ('role', 'point_vente', 'telephone')
+
+
+# 🔹 Admin étendu pour User avec Profile intégré
+class UserAdmin(BaseUserAdmin):
+    inlines = (ProfileInline,)
+    list_display = ('username', 'email', 'first_name', 'last_name', 'get_role', 'get_point_vente', 'get_telephone', 'is_active', 'is_staff')
+    list_filter = ('is_staff', 'is_superuser', 'is_active', 'profile__role')
+    search_fields = ('username', 'first_name', 'last_name', 'email')
+    
+    def get_role(self, obj):
+        try:
+            return obj.profile.get_role_display()
+        except:
+            return "-"
+    get_role.short_description = 'Rôle'
+    
+    def get_point_vente(self, obj):
+        try:
+            return obj.profile.point_vente.nom if obj.profile.point_vente else "-"
+        except:
+            return "-"
+    get_point_vente.short_description = 'Point de vente'
+    
+    def get_telephone(self, obj):
+        try:
+            return obj.profile.telephone if obj.profile.telephone else "-"
+        except:
+            return "-"
+    get_telephone.short_description = 'Téléphone'
+
+
+# 🔹 Admin pour PointVente
+class PointVenteAdmin(admin.ModelAdmin):
+    list_display = ('nom', 'adresse', 'telephone', 'nombre_commerciaux')
+    search_fields = ('nom', 'adresse', 'telephone')
+    
+    def nombre_commerciaux(self, obj):
+        return obj.profile_set.count()
+    nombre_commerciaux.short_description = 'Nombre de commerciaux'
+
+
+# 🔹 Désenregistrer le User par défaut et enregistrer notre version personnalisée
+admin.site.unregister(User)
+admin.site.register(User, UserAdmin)
 
 # 🔹 Enregistre les modèles avec leur admin personnalisé
 admin.site.register(Devis, DevisAdmin)
@@ -55,3 +108,4 @@ admin.site.register(Produit, ProduitAdmin)
 admin.site.register(Categorie, CategorieAdmin)
 admin.site.register(Client, ClientAdmin)
 admin.site.register(ActionCommercial, ActionCommercialAdmin)
+admin.site.register(PointVente, PointVenteAdmin)

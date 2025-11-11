@@ -6,7 +6,16 @@
 <h1>Détail du Devis n°{{ devis.numero_devis }}</h1>
 
 <p><strong>Client :</strong> {{ devis.client.nom }} {{ devis.client.prenom }}</p>
+<p><strong>Email :</strong> {{ devis.client.email }}</p>
+<p><strong>Téléphone :</strong> {{ devis.client.telephone|default:"Non renseigné" }}</p>
 <p><strong>Date :</strong> {{ devis.date_emission|date:"d/m/Y" }}</p>
+
+{% if devis.utilisateur %}
+<p><strong>Conseiller Commercial :</strong> {{ devis.utilisateur.first_name }} {{ devis.utilisateur.last_name }}</p>
+<p><strong>Email Commercial :</strong> {{ devis.utilisateur.email }}</p>
+<p><strong>Téléphone Commercial :</strong> {{ devis.utilisateur.profile.telephone|default:"Non renseigné" }}</p>
+{% endif %}
+
 <p><strong>Total TTC :</strong> {{ devis.total_ttc }} €</p>
 
 <h2>Lignes du devis</h2>

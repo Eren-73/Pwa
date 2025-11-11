@@ -110,11 +110,27 @@
                 <li><a href="{% url 'dashboard' %}"><i class="bi bi-house-fill"></i>Tableau de bord</a></li>
                 <li><a href="{% url 'liste_clients' %}"><i class="bi bi-people-fill"></i>Clients</a></li>
                 <li><a href="{% url 'liste_materiels' %}"><i class="bi bi-box-seam-fill"></i>Liste des matériels</a></li>
+                
                 {% if user.is_authenticated and user.is_superuser %}
                 <li class="mt-3">
+                    <small class="text-muted d-block mb-2 ms-2">ADMINISTRATION</small>
+                </li>
+                <li>
                     <a href="{% url 'admin_dashboard' %}" class="d-flex align-items-center text-warning">
                         <i class="bi bi-shield-lock-fill me-2"></i>
                         <span>Dashboard Admin</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{% url 'liste_commerciaux' %}" class="d-flex align-items-center text-info">
+                        <i class="bi bi-person-badge-fill me-2"></i>
+                        <span>Gérer Commerciaux</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{% url 'liste_point_ventes' %}" class="d-flex align-items-center text-success">
+                        <i class="bi bi-building me-2"></i>
+                        <span>Points de Vente</span>
                     </a>
                 </li>
                 {% endif %}
@@ -139,17 +155,30 @@
 
     <!-- Contenu principal -->
     <div class="content">
+        <!-- Messages Django -->
+        {% if messages %}
+        <div class="container-fluid mb-3">
+            {% for message in messages %}
+            {% if message.tags == 'error' %}
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            {% elif message.tags == 'success' %}
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+            {% elif message.tags == 'warning' %}
+                <div class="alert alert-warning alert-dismissible fade show" role="alert">
+            {% elif message.tags == 'info' %}
+                <div class="alert alert-info alert-dismissible fade show" role="alert">
+            {% else %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {% endif %}
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        
         {% block content %}{% endblock %}
     </div>
-
-    <!-- Messages Django -->
-    {% if messages %}
-    <div class="container mt-3">
-        {% for message in messages %}
-        <div class="alert alert-{{ message.tags }}">{{ message }}</div>
-        {% endfor %}
-    </div>
-    {% endif %}
 
     <script>
         // Initialisation des tooltips Bootstrap

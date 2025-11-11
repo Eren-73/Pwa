@@ -47,7 +47,16 @@ urlpatterns = [
     #---DASHBOARD---#
     path('admin-dashboard/', views.admin_dashboard, name='admin_dashboard'),
     path('commerciaux/', views.commerciaux_devis_list, name='commerciaux_devis_list'),
+    
+    # Commerciaux CRUD
+    path('commerciaux/liste/', views.liste_commerciaux, name='liste_commerciaux'),
     path('commerciaux/creer/', views.create_commercial, name='create_commercial'),
+    path('commerciaux/modifier/<int:user_id>/', views.modifier_commercial, name='modifier_commercial'),
+    path('commerciaux/supprimer/<int:user_id>/', views.supprimer_commercial, name='supprimer_commercial'),
+    
+    # QR Codes
+    path('admin/regenerate-qr/', views.regenerate_qr_codes_view, name='regenerate_qr_codes'),
+    
     # Points de vente CRUD
     path('points-vente/', views.liste_point_ventes, name='liste_point_ventes'),
     path('points-vente/ajouter/', views.ajouter_point_vente, name='ajouter_point_vente'),

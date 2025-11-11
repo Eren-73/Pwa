@@ -3,11 +3,20 @@ from io import BytesIO
 from django.core.files.base import ContentFile
 from num2words import num2words
 from django.urls import reverse
+from django.conf import settings
 
 
-def generate_qr_code(numero_devis):
-    base_url = "http://192.168.1.20:8000/detail/"  # ou ton URL en prod
-    content = f"{base_url}{numero_devis}/"   # ex: http://192.168.1.20:8000/detail/4270F6EB-5350-4623
+def generate_qr_code(devis_slug):
+    """
+    Génère un QR code qui pointe vers la page de détail du devis.
+    Le slug du devis est utilisé pour construire l'URL.
+    L'URL est construite à partir de SITE_URL dans settings.py
+    """
+    # Récupérer l'URL de base depuis les settings
+    base_url = getattr(settings, 'SITE_URL', 'http://127.0.0.1:8000')
+    
+    # Construire l'URL complète vers le devis
+    content = f"{base_url}/devis/template/{devis_slug}/"
 
     qr = qrcode.QRCode(
         version=1,

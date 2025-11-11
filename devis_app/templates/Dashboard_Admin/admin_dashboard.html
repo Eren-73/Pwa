@@ -20,7 +20,13 @@
                 <i class="bi bi-calendar3"></i>
                 {{ devis_mois_actuel }} devis ce mois
             </div>
-            <a href="{% url 'liste_point_ventes' %}" class="btn btn-sm btn-outline-primary">Points de vente</a>
+            <!-- Boutons rapides -->
+            <a href="{% url 'liste_commerciaux' %}" class="btn btn-sm btn-outline-info">
+                <i class="bi bi-person-badge"></i> Commerciaux
+            </a>
+            <a href="{% url 'liste_point_ventes' %}" class="btn btn-sm btn-outline-success">
+                <i class="bi bi-building"></i> Points de vente
+            </a>
         </div>
     </div>
 

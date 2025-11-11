@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-bm-^&9^9a&xauc!w4+2*v&*2f#@0m_4m=krli61q3)k$tzu4b9
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['192.168.1.68', 'localhost', '127.0.0.1','192.168.1.76']
+ALLOWED_HOSTS = ['192.168.1.68', 'localhost', '127.0.0.1','192.168.1.76','192.168.1.178']
 
 
 
@@ -132,7 +132,8 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Default primary key field type
-SITE_URL = "http://127.0.0.1:8000"
+# URL de base pour les QR codes (changez selon votre réseau)
+SITE_URL = "http://192.168.1.178"  # Utilisez votre IP locale pour que ça fonctionne sur mobile
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

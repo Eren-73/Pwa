@@ -53,6 +53,26 @@
               </div>
               <div class="col-md-6">
                 <div class="form-group mb-3">
+                  <label class="form-label">Téléphone</label>
+                  {{ form.telephone }}
+                  <div class="form-text text-muted">Numéro de téléphone du commercial</div>
+                  {% if form.telephone.errors %}
+                    <div class="text-danger small">{{ form.telephone.errors }}</div>
+                  {% endif %}
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group mb-3">
+                  <label class="form-label">Point de vente</label>
+                  {{ form.point_vente }}
+                  <div class="form-text text-muted">Assigner à un point de vente</div>
+                  {% if form.point_vente.errors %}
+                    <div class="text-danger small">{{ form.point_vente.errors }}</div>
+                  {% endif %}
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group mb-3">
                   <label class="form-label">Mot de passe <span class="text-danger">*</span></label>
                   {{ form.password1 }}
                   <div class="form-text text-muted">8 caractères minimum, avec chiffres et lettres</div>
@@ -84,7 +104,7 @@
               <button type="submit" class="btn btn-primary px-4">
                 <i class="bi bi-person-plus me-2"></i>Créer le commercial
               </button>
-              <a href="{% url 'commerciaux_devis_list' %}" class="btn btn-outline-secondary ms-2">
+              <a href="{% url 'liste_commerciaux' %}" class="btn btn-outline-secondary ms-2">
                 <i class="bi bi-x-circle me-2"></i>Annuler
               </a>
             </div>

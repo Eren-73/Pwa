@@ -56,9 +56,16 @@
                         {{ client.nom }} {{ client.prenom }}
                     </a>
                 </h5>
-                <p class="card-text mb-1"><strong>Email:</strong> {{ client.email }}</p>
-                <p class="card-text mb-1"><strong>Téléphone:</strong> {{ client.telephone }}</p>
-                <p class="card-text mb-1"><strong>Adresse:</strong> {{ client.adresse }}</p>
+                <p class="card-text mb-1"><strong>📧 Email:</strong> {{ client.email }}</p>
+                <p class="card-text mb-1"><strong>📞 Téléphone:</strong> {{ client.telephone|default:"Non renseigné" }}</p>
+                <p class="card-text mb-1"><strong>📍 Adresse:</strong> {{ client.adresse|default:"Non renseignée" }}</p>
+                <p class="card-text mb-1"><strong>👤 Conseiller Commercial:</strong> 
+                    {% if client.devis_set.first.utilisateur %}
+                        {{ client.devis_set.first.utilisateur.get_full_name|default:client.devis_set.first.utilisateur.username }}
+                    {% else %}
+                        Non assigné
+                    {% endif %}
+                </p>
                 <p class="text-muted mb-2"><small>Ajouté le {{ client.date_creation|date:"d/m/Y" }}</small></p>
 
                 <div class="d-flex justify-content-end gap-2 actions-cell">

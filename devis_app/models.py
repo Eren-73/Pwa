@@ -29,6 +29,7 @@ class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     role = models.CharField(max_length=20, choices=ROLE_CHOICES)
     point_vente = models.ForeignKey(PointVente, on_delete=models.SET_NULL, null=True, blank=True)
+    telephone = models.CharField(max_length=20, blank=True, null=True)
 
     def __str__(self):
         return f"{self.user.username} - {self.role}"
@@ -177,7 +178,8 @@ class Devis(models.Model):
             self.total_ttc = total_ttc.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
             self.total_ttc_lettres = nombre_en_lettres(self.total_ttc)
 
-            qr_image = generate_qr_code(self.numero_devis)
+            # Générer le QR code avec le slug du devis
+            qr_image = generate_qr_code(self.slug)
             if qr_image:
                 self.qr_code.save(f"qr_{self.slug}.png", qr_image, save=False)
 

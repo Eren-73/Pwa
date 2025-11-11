@@ -15,8 +15,13 @@
                 <i class="bi bi-calendar3"></i>
                 {{ devis_mois_actuel }} devis ce mois
             </div>
-            <!-- Bouton rapide vers la gestion des points de vente -->
-            <a href="{% url 'liste_point_ventes' %}" class="btn btn-sm btn-outline-primary">Points de vente</a>
+            <!-- Boutons rapides -->
+            <a href="{% url 'liste_commerciaux' %}" class="btn btn-sm btn-outline-info">
+                <i class="bi bi-person-badge"></i> Commerciaux
+            </a>
+            <a href="{% url 'liste_point_ventes' %}" class="btn btn-sm btn-outline-success">
+                <i class="bi bi-building"></i> Points de vente
+            </a>
         </div>
     </div>
 
@@ -93,16 +98,48 @@
 
     <!-- Graphique et Top Clients -->
     <div class="row g-4">
+        <!-- Quick access to Commerciaux -->
+        <div class="col-12">
+            <div class="card border-0 shadow-sm mb-3">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="card-title mb-0">👥 Gestion des commerciaux</h5>
+                        <small class="text-muted">Créer, modifier ou supprimer les comptes commerciaux de votre équipe.</small>
+                    </div>
+                    <div>
+                        <a href="{% url 'liste_commerciaux' %}" class="btn btn-primary">Gérer les commerciaux</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
         <!-- Quick access to Points de vente -->
         <div class="col-12">
             <div class="card border-0 shadow-sm mb-3">
                 <div class="card-body d-flex justify-content-between align-items-center">
                     <div>
-                        <h5 class="card-title mb-0">Gestion des points de vente</h5>
+                        <h5 class="card-title mb-0">🏢 Gestion des points de vente</h5>
                         <small class="text-muted">Ajouter, modifier ou supprimer les points de vente utilisés lors de la création des devis.</small>
                     </div>
                     <div>
                         <a href="{% url 'liste_point_ventes' %}" class="btn btn-primary">Gérer les points de vente</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Quick access to QR Codes -->
+        <div class="col-12">
+            <div class="card border-0 shadow-sm mb-3 border-warning">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="card-title mb-0">📱 Régénération des QR Codes</h5>
+                        <small class="text-muted">Régénérer tous les QR codes des devis avec la nouvelle URL configurée.</small>
+                    </div>
+                    <div>
+                        <a href="{% url 'regenerate_qr_codes' %}" class="btn btn-warning">
+                            🔄 Régénérer les QR codes
+                        </a>
                     </div>
                 </div>
             </div>

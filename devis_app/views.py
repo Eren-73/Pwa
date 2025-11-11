@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from .models import Devis, LigneDevis,Client,Categorie,Produit
+from .models import Devis, LigneDevis,Client,Categorie,Produit,PointVente
 from .forms import DevisForm, LigneDevisForm,ClientForm,ProduitForm,CategorieForm
 from django.forms import modelformset_factory
 from django.urls import reverse
@@ -80,7 +80,7 @@ def creer_devis(request):
     # 🔹 Nombre total de devis créés par l’utilisateur connecté
     nombre_devis = Devis.objects.filter(utilisateur=request.user).count()
 
-    return render(request, 'creer_devis.html', {
+    return render(request, 'devis/creer_devis.html', {
         'devis_form': devis_form,
         'formset': formset,
         'nombre_devis': nombre_devis,  # ➕ tu peux l'afficher dans ton template
@@ -92,7 +92,8 @@ def devis_template(request, slug):
 
     return render(request, 'devis/devis_template.html', {
         'devis': devis,
-        'lignes': lignes
+        'lignes': lignes,
+        'qr_code_url': request.build_absolute_uri(devis.qr_code.url) if devis.qr_code else None,
     })
 
 def dashboard(request):
@@ -161,7 +162,7 @@ def detail_devis(request, slug):
     # Récupère les lignes associées au devis pour l'affichage
     lignes = devis.lignes.all()
 
-    return render(request, "devis_template.html", {
+    return render(request, "devis/devis_template.html", {
         "devis": devis,
         "lignes": lignes
     })
@@ -669,10 +670,146 @@ def create_commercial(request):
     if request.method == 'POST':
         form = CommercialCreateForm(request.POST)
         if form.is_valid():
-            user = form.save()
-            messages.success(request, f"Commercial {user.username} créé avec succès.")
-            return redirect('commerciaux_devis_list')
+            try:
+                user = form.save()
+                messages.success(request, f"✅ Commercial {user.username} créé avec succès.")
+                return redirect('liste_commerciaux')
+            except Exception as e:
+                messages.error(request, f"❌ Erreur lors de la création : {str(e)}")
+        else:
+            messages.error(request, "❌ Le formulaire contient des erreurs. Veuillez vérifier les champs.")
     else:
         form = CommercialCreateForm()
 
     return render(request, 'create_commercial.html', {'form': form})
+
+
+@login_required(login_url='login')
+def liste_commerciaux(request):
+    """Liste tous les commerciaux."""
+    if not request.user.is_superuser:
+        messages.error(request, "Accès non autorisé.")
+        return redirect('dashboard')
+    
+    commerciaux = User.objects.filter(profile__role='commercial').select_related('profile', 'profile__point_vente').prefetch_related('devis')
+    response = render(request, 'commercial/liste_commerciaux.html', {'commerciaux': commerciaux})
+    # Désactiver le cache pour éviter les problèmes d'affichage
+    response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response['Pragma'] = 'no-cache'
+    response['Expires'] = '0'
+    return response
+
+
+@login_required(login_url='login')
+def modifier_commercial(request, user_id):
+    """Permet à l'admin de modifier un commercial."""
+    if not request.user.is_superuser:
+        messages.error(request, "Accès non autorisé.")
+        return redirect('dashboard')
+    
+    user = get_object_or_404(User, id=user_id, profile__role='commercial')
+    
+    if request.method == 'POST':
+        try:
+            # Mise à jour des informations de base
+            user.username = request.POST.get('username')
+            user.first_name = request.POST.get('first_name', '')
+            user.last_name = request.POST.get('last_name', '')
+            user.email = request.POST.get('email', '')
+            user.is_active = request.POST.get('is_active') == 'on'
+            
+            # Mise à jour du mot de passe si fourni
+            new_password = request.POST.get('new_password', '').strip()
+            if new_password:
+                user.set_password(new_password)
+            
+            user.save()
+            
+            # Mise à jour du profil
+            profile = user.profile
+            point_vente_id = request.POST.get('point_vente')
+            if point_vente_id:
+                profile.point_vente_id = int(point_vente_id)
+            else:
+                profile.point_vente = None
+            profile.telephone = request.POST.get('telephone', '')
+            profile.save()
+            
+            messages.success(request, f"✅ Commercial {user.username} modifié avec succès.")
+            
+        except Exception as e:
+            messages.error(request, f"❌ Erreur lors de la modification : {str(e)}")
+            return redirect('modifier_commercial', user_id=user_id)
+        
+        # Redirection POST-Redirect-GET pour éviter la re-soumission du formulaire
+        return redirect('liste_commerciaux')
+    
+    points_vente = PointVente.objects.all()
+    return render(request, 'commercial/modifier_commercial.html', {
+        'commercial': user,
+        'points_vente': points_vente
+    })
+
+
+@login_required(login_url='login')
+def supprimer_commercial(request, user_id):
+    """Permet à l'admin de supprimer un commercial."""
+    if not request.user.is_superuser:
+        messages.error(request, "Accès non autorisé.")
+        return redirect('dashboard')
+    
+    user = get_object_or_404(User, id=user_id, profile__role='commercial')
+    
+    if request.method == 'POST':
+        username = user.username
+        user.delete()
+        messages.success(request, f"Commercial {username} supprimé avec succès.")
+        return redirect('liste_commerciaux?deleted=1')
+    
+    return render(request, 'commercial/supprimer_commercial.html', {'commercial': user})
+
+
+@login_required(login_url='login')
+def regenerate_qr_codes_view(request):
+    """Permet à l'admin de régénérer tous les QR codes."""
+    if not request.user.is_superuser:
+        messages.error(request, "Accès non autorisé.")
+        return redirect('dashboard')
+    
+    from .utils import generate_qr_code
+    from django.conf import settings
+    
+    total_devis = Devis.objects.count()
+    success_count = 0
+    error_count = 0
+    started = False
+    
+    if request.method == 'POST':
+        started = True
+        devis_list = Devis.objects.all()
+        
+        for devis in devis_list:
+            try:
+                qr_image = generate_qr_code(devis.slug)
+                if qr_image:
+                    devis.qr_code.save(f"qr_{devis.slug}.png", qr_image, save=False)
+                    devis.save(update_fields=['qr_code'])
+                    success_count += 1
+                else:
+                    error_count += 1
+            except Exception as e:
+                error_count += 1
+        
+        messages.success(request, f"✅ {success_count} QR codes régénérés avec succès !")
+        if error_count > 0:
+            messages.warning(request, f"⚠️ {error_count} erreurs sont survenues.")
+    
+    return render(request, 'admin/regenerate_qr.html', {
+        'total_devis': total_devis,
+        'site_url': settings.SITE_URL,
+        'started': started,
+        'success_count': success_count,
+        'error_count': error_count,
+    })
+    
+    return render(request, 'commercial/supprimer_commercial.html', {'commercial': user})

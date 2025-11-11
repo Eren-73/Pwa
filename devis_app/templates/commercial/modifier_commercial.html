@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block title %}Modifier Commercial{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="text-center mb-5">
+        <h2 class="fw-bold display-6">✏️ Modifier un Commercial</h2>
+        <p class="text-muted">Modifiez les informations du commercial</p>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-lg border-0 rounded-4">
+                <div class="card-body p-4">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="row g-3">
+                            <!-- Username -->
+                            <div class="col-md-6">
+                                <label for="username" class="form-label">Username *</label>
+                                <input type="text" class="form-control" id="username" name="username" value="{{ commercial.username }}" required>
+                            </div>
+
+                            <!-- Email -->
+                            <div class="col-md-6">
+                                <label for="email" class="form-label">Email</label>
+                                <input type="email" class="form-control" id="email" name="email" value="{{ commercial.email }}">
+                            </div>
+
+                            <!-- Prénom -->
+                            <div class="col-md-6">
+                                <label for="first_name" class="form-label">Prénom</label>
+                                <input type="text" class="form-control" id="first_name" name="first_name" value="{{ commercial.first_name }}">
+                            </div>
+
+                            <!-- Nom -->
+                            <div class="col-md-6">
+                                <label for="last_name" class="form-label">Nom</label>
+                                <input type="text" class="form-control" id="last_name" name="last_name" value="{{ commercial.last_name }}">
+                            </div>
+
+                            <!-- Téléphone -->
+                            <div class="col-md-6">
+                                <label for="telephone" class="form-label">Téléphone</label>
+                                <input type="text" class="form-control" id="telephone" name="telephone" value="{{ commercial.profile.telephone|default:'' }}">
+                            </div>
+
+                            <!-- Point de vente -->
+                            <div class="col-md-6">
+                                <label for="point_vente" class="form-label">Point de vente</label>
+                                <select class="form-select" id="point_vente" name="point_vente">
+                                    <option value="">-- Non assigné --</option>
+                                    {% for pv in points_vente %}
+                                    <option value="{{ pv.id }}" {% if commercial.profile.point_vente.id == pv.id %}selected{% endif %}>
+                                        {{ pv.nom }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <!-- Nouveau mot de passe -->
+                            <div class="col-12">
+                                <label for="new_password" class="form-label">Nouveau mot de passe</label>
+                                <input type="password" class="form-control" id="new_password" name="new_password" placeholder="Laissez vide pour ne pas changer">
+                                <small class="text-muted">Laissez ce champ vide si vous ne souhaitez pas modifier le mot de passe.</small>
+                            </div>
+
+                            <!-- Actif -->
+                            <div class="col-12">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="is_active" name="is_active" {% if commercial.is_active %}checked{% endif %}>
+                                    <label class="form-check-label" for="is_active">
+                                        Compte actif
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Boutons -->
+                        <div class="mt-4 d-flex gap-2 justify-content-end">
+                            <a href="{% url 'liste_commerciaux' %}" class="btn btn-secondary">Annuler</a>
+                            <button type="submit" class="btn btn-primary">💾 Enregistrer</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

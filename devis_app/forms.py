@@ -61,6 +61,8 @@ from django.contrib.auth.models import User
 
 
 class CommercialCreateForm(UserCreationForm):
+    from .models import PointVente
+    
     email = forms.EmailField(
         required=False,
         widget=forms.EmailInput(attrs={'class': 'form-control'})
@@ -73,6 +75,17 @@ class CommercialCreateForm(UserCreationForm):
         required=False,
         widget=forms.TextInput(attrs={'class': 'form-control'})
     )
+    telephone = forms.CharField(
+        required=False,
+        label='Téléphone',
+        widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
+    point_vente = forms.ModelChoiceField(
+        queryset=PointVente.objects.all(),
+        required=False,
+        label='Point de vente',
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
     is_active = forms.BooleanField(
         required=False,
         initial=True,
@@ -82,7 +95,7 @@ class CommercialCreateForm(UserCreationForm):
 
     class Meta:
         model = User
-        fields = ('username', 'first_name', 'last_name', 'email', 'is_active', 'password1', 'password2')
+        fields = ('username', 'first_name', 'last_name', 'email', 'telephone', 'point_vente', 'is_active', 'password1', 'password2')
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -99,7 +112,10 @@ class CommercialCreateForm(UserCreationForm):
         except Exception:
             from .models import Profile
             profile = Profile.objects.create(user=user)
+        
         profile.role = 'commercial'
+        profile.telephone = self.cleaned_data.get('telephone')
+        profile.point_vente = self.cleaned_data.get('point_vente')
         profile.save()
         return user
 

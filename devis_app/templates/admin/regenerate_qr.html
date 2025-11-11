@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}Régénérer QR Codes{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="text-center mb-5">
+        <h2 class="fw-bold display-6">🔄 Régénération des QR Codes</h2>
+        <p class="text-muted">Régénérez tous les QR codes des devis avec la nouvelle URL</p>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-lg border-0 rounded-4">
+                <div class="card-body p-4">
+                    <div class="alert alert-info">
+                        <h5>📋 Informations</h5>
+                        <ul>
+                            <li>Cette action va régénérer tous les QR codes de tous les devis</li>
+                            <li>URL actuelle : <strong>{{ site_url }}</strong></li>
+                            <li>Nombre de devis : <strong>{{ total_devis }}</strong></li>
+                            <li>Cette opération peut prendre quelques minutes</li>
+                        </ul>
+                    </div>
+
+                    {% if not started %}
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="text-center">
+                            <button type="submit" class="btn btn-primary btn-lg px-5">
+                                🔄 Lancer la régénération
+                            </button>
+                        </div>
+                    </form>
+                    {% else %}
+                    <div class="alert alert-success">
+                        <h5>✅ Régénération terminée !</h5>
+                        <p class="mb-0">{{ success_count }} QR codes ont été régénérés avec succès sur {{ total_devis }} devis.</p>
+                        {% if error_count > 0 %}
+                        <p class="text-danger mb-0">⚠️ {{ error_count }} erreurs sont survenues.</p>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="text-center mt-4">
+                        <a href="{% url 'admin_dashboard' %}" class="btn btn-secondary">
+                            ⬅ Retour au dashboard
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
