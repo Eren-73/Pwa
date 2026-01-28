@@ -1,3 +1,5 @@
+
+{% extends "base.html" %}
 {% load static %}
 
 <!DOCTYPE html>
@@ -10,88 +12,76 @@
     <!-- Bootstrap pour dropdown Exporter -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
+                        @media print {
+                            table, th, td {
+                                border: none !important;
+                            }
+                        }
+                /* Hide elements with .no-print when printing (PDF export) */
+                @media print {
+                    .no-print {
+                        display: none !important;
+                    }
+                }
         @page { size: A4; margin: 10mm; }
-        body {
-            font-family: Arial, Helvetica, sans-serif;
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 12px;
             font-size: 11px;
-            color: #000;
-            margin: 0;
-            background: #fff;
         }
+        th, td {
+            border: none !important;
+            padding: 4px 6px;
+            text-align: left;
+        }
+        th {
+            background: #f5f5f5;
+            font-weight: bold;
+        }
+        /* Removed stray page-break-after property outside selector */
         .page {
+            background: #fff;
             width: 210mm;
             min-height: 297mm;
+            max-width: 210mm;
+            max-height: 297mm;
             margin: 0 auto;
-            padding: 5mm 10mm;
+            padding: 18px 18px 12px 18px;
             box-sizing: border-box;
+            box-shadow: none;
+            border-radius: 0;
+            position: relative;
         }
-        .top-buttons {
-            display: flex;
-            justify-content: flex-start;
-            gap: 10px;
-            margin-bottom: 8px;
+        @media print {
+            @page {
+                size: A4;
+                margin: 0;
+            }
+            html, body {
+                width: 210mm;
+                height: 297mm;
+                margin: 0 !important;
+                padding: 0 !important;
+                background: #fff !important;
+                overflow: hidden !important;
+            }
+            .page {
+                width: 210mm;
+                min-height: 297mm;
+                max-width: 210mm;
+                max-height: 297mm;
+                margin: 0 !important;
+                padding: 18px 18px 12px 18px !important;
+                box-shadow: none !important;
+                border-radius: 0 !important;
+                page-break-after: avoid !important;
+                page-break-before: avoid !important;
+                page-break-inside: avoid !important;
+                overflow: hidden !important;
+            }
         }
-        .top-buttons button, .top-buttons .dropdown-toggle {
-            padding: 6px 14px;
-            font-size: 13px;
-            cursor: pointer;
-            border-radius: 5px;
-            border: 1px solid #000;
-            background-color: #f0f0f0;
-            font-weight: bold;
-            transition: 0.2s;
-        }
-        .top-buttons button:hover, .top-buttons .dropdown-toggle:hover {
-            background-color: #dcdcdc;
-        }
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 4px solid #000;
-            padding-bottom: 8px;
-            margin-bottom: 4px;
-        }
-        .header-text {
-            font-size: 11px;
-            font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: .2px;
-            text-align: right;
-        }
-        .header-logo img {
-            height: 70px;
-            width: auto;
-        }
-        .doc-info {
-            margin-top: 6px;
-            background: #000;
-            color: #fff;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            padding: 8px 14px;
-            font-size: 14px;
-            font-weight: bold;
-        }
-        .doc-info div:last-child { text-align: right; }
-        .parties {
-            display: flex;
-            gap: 15px;
-            margin-top: 8px;
-            align-items: flex-start;
-            justify-content: space-between;
-        }
-        .box {
-            border: 1px solid #000;
-            padding: 6px;
-            height: 105px;
-            flex: 1;
-            line-height: 1.1;
-            background-color: #fff;
-            max-width: calc(40% - 10px);
-            box-sizing: border-box;
-            font-size: 10px;
-        }
+        /* Removed stray box-sizing and font-size properties outside selector */
         .box p {
             margin: 2px 0;
             display: flex;
@@ -149,70 +139,106 @@
         .info-block {
             display: flex;
             justify-content: space-between;
-            margin-top: 6px;
+            margin-top: 10px;
             background-color: #f0f0f0;
-            padding: 6px 14px;
+            padding: 8px 14px;
         }
         .info-block p {
             margin: 0 15px;
         }
-        
-        @media print{
-            .top-buttons{
-                display: none !important;
-            }
-            .page {
-                padding: 10mm;
-                margin: 0 auto;
-            }
-            /* Forcer l'impression des couleurs de fond */
-            * {
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-            }
-            /* S'assurer que les bordures et couleurs sont imprimées */
-            .header {
-                border-bottom: 4px solid #000 !important;
-            }
-            .doc-info {
-                background: #000 !important;
-                color: #fff !important;
-            }
-            .box {
-                border: 1px solid #000 !important;
-            }
-            .box-title {
-                background-color: #f0f0f0 !important;
-            }
-            .info-block {
-                background-color: #f0f0f0 !important;
-            }
-            table thead tr {
-                background-color: #f2f2f2 !important;
-            }
-            table, th, td {
-                border: 1px solid #000 !important;
-            }
+        h2 {
+            margin-top: 20px;
+            font-size: medium;
+            font-weight: bold;
         }
-
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            text-align: left;
+            font-size: 11px;
+        }
+        th, td {
+            border: 1px solid #000;
+            padding: 6px;
+        }
+        th {
+            background: #f2f2f2;
+            font-weight: bold;
+        }
+        /* Totals table */
+        table[style*='width: 40%'] {
+            float: right;
+            margin-top: 0;
+            width: 40% !important;
+            background: #fff;
+        }
+        table[style*='width: 40%'] td {
+            border: 1px solid #000 !important;
+            padding: 5px !important;
+            font-size: 12px;
+        }
+        table[style*='width: 40%'] tr:last-child td {
+            color: red !important;
+            font-weight: 700;
+        }
+        .footer {
+            margin-top: 0;
+            font-size: 11px;
+            text-align: center;
+            line-height: 1.5;
+            color: #000;
+        }
+        .top-buttons {
+            display: flex;
+            justify-content: flex-start;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .top-buttons button, .top-buttons .dropdown-toggle {
+            padding: 6px 14px;
+            font-size: 13px;
+            cursor: pointer;
+            border-radius: 5px;
+            border: 1px solid #000;
+            background-color: #f0f0f0;
+            font-weight: bold;
+            transition: 0.2s;
+        }
+        .top-buttons button:hover, .top-buttons .dropdown-toggle:hover {
+            background-color: #dcdcdc;
+        }
         .header {
             display: flex;
-            justify-content: space-between;
+            flex-direction: row;
             align-items: center;
             border-bottom: 4px solid #000;
             padding-bottom: 12px;
             margin-bottom: 6px;
+        }
+        .header-logo {
+            flex: 0 0 auto;
+            margin-right: 18px;
+            display: flex;
+            align-items: center;
+        }
+        .header-logo img {
+            height: 70px;
+            width: auto;
+        }
+        .header-main {
+            flex: 1 1 auto;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
         }
         .header-text {
             font-size: 11px;
             font-weight: bold;
             text-transform: uppercase;
             letter-spacing: .2px;
-            text-align: right;
-        }
-        .header-logo img {
-            height: 70px;
-            width: auto;
+            text-align: left;
+            margin-bottom: 0;
         }
         .doc-info {
             margin-top: 10px;
@@ -307,62 +333,41 @@
         .info-block p {
             margin: 0 15px;
         }
-
-
-
-
     </style>
 </head>
 <body>
-
-
-        <!-- Affichage des messages Django -->
-        {% if messages %}
-            <div style="margin: 20px 0;">
-                {% for message in messages %}
-                    <div class="alert alert-{{ message.tags }}" role="alert" style="font-size: 15px;">
-                        {{ message }}
-                    </div>
-                {% endfor %}
-            </div>
-        {% endif %}
-
-        <div class="page">
-
-        <!-- Boutons Retour, Imprimer et Exporter -->
-        <div class="top-buttons">
-            <button onclick="window.history.back()">⬅ Retour</button>
-            <button onclick="window.print()">🖨 Imprimer</button>
-
-            <!-- Dropdown Exporter -->
-            <div class="dropdown">
-                <button class="dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                    ⬇ Exporter
-                </button>
-                <ul class="dropdown-menu">
-                    <li><a class="dropdown-item" href="{% url 'export_pdf' devis.slug %}">PDF</a></li>
-                    <li><a class="dropdown-item" href="{% url 'export_devis_word' devis.slug %}">Word</a></li>
-                    <li><a class="dropdown-item" href="{% url 'export_devis_excel' devis.slug %}">Excel</a></li>
-                </ul>
-            </div>
-        </div>
-
-        <!-- Header -->
+    <div class="page">
+        <!-- Header with action buttons -->
         <div class="header">
             <div class="header-logo">
                 <img src="{% static 'images/logo.png' %}"  alt="Logo de l'entreprise" />
             </div>
-            <div class="header-text">
-                ENERGIE VERTE – LABORATOIRE R&D - FORMATION – AUDIT & CONSEILS – IMPORT/EXPORT
+            <div class="header-main">
+                <div class="header-text">
+                    ENERGIE VERTE – LABORATOIRE R&D - FORMATION – AUDIT & CONSEILS – IMPORT/EXPORT
+                </div>
+                <div class="top-buttons no-print" style="margin-left: 18px;">
+                    <button onclick="window.history.back()">⬅ Retour</button>
+                    <button onclick="window.print()">🖨 Imprimer</button>
+                    <!-- Dropdown Exporter -->
+                    <div class="dropdown" style="display:inline-block;">
+                        <button class="dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            ⬇ Exporter
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{% url 'export_pdf' devis.slug %}">PDF</a></li>
+                            <li><a class="dropdown-item" href="{% url 'export_devis_word' devis.slug %}">Word</a></li>
+                            <li><a class="dropdown-item" href="{% url 'export_devis_excel' devis.slug %}">Excel</a></li>
+                        </ul>
+                    </div>
+                </div>
             </div>
         </div>
-
         <!-- Infos document dynamiques -->
         <div class="doc-info">
             <div>Proposition commerciale N° {{ devis.numero_devis }}</div>
             <div>Émise en date du {{ devis.date_emission|date:"d/m/Y" }}</div>
         </div>
-
         <!-- Parties -->
         <div class="parties">
             <div class="box client">
@@ -401,17 +406,15 @@
                     QR Code<br>Non généré
                 </div>
                 {% endif %}
-                <!-- <div class="qr-code">CODE: {{ devis.numero_devis }}</div> -->
+                <div class="qr-code">CODE: {{ devis.numero_devis }}</div>
             </div>
         </div>
-
         <!-- Infos Proforma -->
         <div class="info-block">
             <p><strong>Date de la proforma:</strong> {{ devis.date_proforma|date:"d/m/Y" }}</p>
             <p><strong>Régime de vente:</strong> {{ devis.regime_vente }}</p>
             <p><strong>Date de validité:</strong> {{ devis.date_validite|date:"d/m/Y" }}</p>
         </div>
-
         <!-- Détail proposition -->
         <h2 style="display:flex; align-items:flex-start; margin-top:20px;">
             <span style="font-weight:bold ;font-size:medium ;">DÉTAIL DE LA PROPOSITION :</span>
@@ -423,7 +426,6 @@
             <span style="flex-grow:1; border-bottom:1px solid #000; margin-left:10px;"></span>
             {% endif %}
         </h2>
-
         <!-- Tableau des lignes -->
         <table style="width: 100%; border-collapse: collapse; margin-top: 10px; text-align: left; font-size: 11px;">
             <thead>
@@ -451,9 +453,7 @@
                 {% endfor %}
             </tbody>
         </table>
-
         <hr style="border: 1px solid black; margin: 10px 0;" />
-
         <!-- Totaux -->
         <table style="width: 40%; border-collapse: collapse; font-size: 12px; float: right; text-align: right;">
             <tr>
@@ -485,32 +485,24 @@
                 </td>
             </tr>
         </table>
-
-        <!-- Add extra space between totals and the next block -->
-        <div style="clear: both; height: 30px;"></div>
-
+        <div style="clear: both; height: 20px;"></div>
         <p style="margin-top:0; text-align:left; font-weight:bold;">
             ARRÊTÉE LA PRÉSENTE PROFORMA A LA SOMME DE
         </p>
         <p style="text-align:left; font-weight:bold;">
             *** {{ devis.total_ttc_lettres }} ***
         </p>
-        
-        <div style="border: 1px solid #000; padding: 8px; font-size: 12px; line-height: 1.6; text-align: justify; margin-top:20px;">
+        <div style="border: 1px solid #000; padding: 12px; font-size: 12px; line-height: 1.6; text-align: justify; margin-top:20px;">
             <p style="margin-top:8px;">
                 <strong>Validité de l'offre :</strong> 1 Mois <br>
                 <strong>Exécution :</strong> 1 Mois <br>
-                <strong>Mode de règlement :</strong> {{ devis.pourcentage_acompte|floatformat:0 }}% acompte et {{ devis.pourcentage_livraison|floatformat:0 }}% à la livraison
+                <strong>Mode de règlement :</strong> 60% acompte et 40% à la livraison
             </p>
             <p style="margin:0;">
                 Les prix indiqués tiennent exclusivement compte des modalités mentionnées ci-dessus. 
                 Toute modification pourrait donner lieu à un ajustement de notre offre initiale. 
             </p>
-
         </div>
-
-
-
         <div style="text-align: right; margin-top: 30px;">
             <p><strong>Responsable Commercial</strong></p>
             {% if devis.utilisateur %}
@@ -519,18 +511,14 @@
             <br />
             <p><strong>Signature et cachet</strong></p>
         </div>
-
         <hr style="border: 1px solid black; margin: 30px 0 0 0;" />
-
         <div class="footer" style="margin-top:0; font-size:11px; text-align:center; line-height:1.5;">
             Siège Social: Les Rosiers, Cocoteraie 3 Villa N°547 – Grand-Bassam – Cote d’Ivoire | Contact : +225 27
             21 51 47 54 / 07 03 93 91 04 | info@pwaenergysolution.com / www.pwaenergysolution.com | SARL au capital
             de 15.000.000 inscrites au RC : CI-ABJ-2018-B-29366 - CC : 1859574 F / CNPS : 334258 | Banque (NSIA): CI
             042 01229 065230402001 62
         </div>
-
     </div>
-
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

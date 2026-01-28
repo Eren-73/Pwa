@@ -7,19 +7,8 @@
   <div class="d-flex justify-content-between align-items-center mb-3">
       <h1 class="mb-0">📄 Dashboard Devis</h1>
 
-      <!-- Bouton menu mobile -->
-      <button class="btn btn-outline-primary d-md-none" id="menuToggle">
-          ☰ Menu
-      </button>
   </div>
 
-  <!-- Sidebar mobile cachée -->
-  <div id="mobileMenu" class="mobile-sidebar bg-light p-3 rounded shadow-sm">
-      <a href="{% url 'creer_devis' %}" class="btn btn-primary w-100 mb-2">➕ Créer un devis</a>
-      <button type="button" id="btnSupprimerSelectionMobile" class="btn btn-danger w-100" style="display:none;" data-bs-toggle="modal" data-bs-target="#confirmDeleteModal">
-          🗑 Supprimer les devis sélectionnés
-      </button>
-  </div>
 
   <!-- Actions desktop -->
   <div class="d-none d-md-flex justify-content-start mb-4 gap-2">
@@ -55,7 +44,8 @@
                   <p class="card-text small">
                       <strong>Client :</strong> {{ devis.client }}<br>
                       <strong>Date :</strong> {{ devis.date_emission|date:"d/m/Y" }}<br>
-                      <strong>Total TTC :</strong> {{ devis.total_ttc }} CFA
+                      <strong>Total TTC :</strong> {{ devis.total_ttc }} CFA<br>
+                      <strong>Objet :</strong> {{ devis.detail_proposition }}
                   </p>
                   <a href="{% url 'devis_template' slug=devis.slug %}" class="btn btn-success btn-sm">👁 Voir facture</a>
               </div>
@@ -105,42 +95,140 @@
   transform: scale(1.02);
 }
 
+/* Sidebar classique masquée sur mobile */
+@media (max-width: 768px) {
+    .sidebar {
+        display: none !important;
+    }
+}
+
 /* Sidebar mobile cachée par défaut */
 .mobile-sidebar {
-  display: none;
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 1050;
+    max-width: 90vw;
+    margin: 2rem auto;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.18);
+    background: #fff;
+    border-radius: 12px;
+    transition: opacity 0.3s, transform 0.3s;
+}
+
+/* Overlay sombre derrière le menu mobile */
+.mobile-sidebar-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.35);
+    z-index: 1049;
 }
 
 /* Apparence quand ouverte */
 .mobile-sidebar.active {
-  display: block;
-  animation: fadeIn 0.3s ease;
+    display: block;
+    animation: fadeIn 0.3s ease;
+}
+.mobile-sidebar.active + .mobile-sidebar-overlay {
+    display: block;
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: translateY(0); }
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 /* Adaptation mobile */
 @media (max-width: 768px) {
-  h1 { font-size: 1.5rem; }
-  .btn { font-size: 0.9rem; }
-  .card-title { font-size: 1rem; }
+    h1 { font-size: 1.1rem; }
+    .btn { font-size: 0.95rem; padding: 0.5rem 1rem; }
+    .card-title { font-size: 1rem; }
+    .card-devis {
+        min-height: unset;
+        margin-bottom: 1rem;
+        padding: 0.7rem 0.5rem 0.7rem 0.5rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+        background: #fff;
+        border-radius: 10px;
+        width: 100%;
+        max-width: 100vw;
+    }
+    .card-body {
+        padding: 0.5rem 0.2rem 0.5rem 0.2rem;
+    }
+    .devis-card {
+        padding-left: 0;
+        padding-right: 0;
+        width: 100%;
+        max-width: 100vw;
+        flex: 0 0 100%;
+        margin: 0 auto 1rem auto;
+    }
+    .row#devisContainer {
+        margin-left: 0;
+        margin-right: 0;
+        flex-direction: column;
+        gap: 0.5rem;
+        width: 100vw;
+        overflow-x: hidden;
+    }
+    .mobile-sidebar {
+        margin-bottom: 1rem;
+        width: 95vw;
+        left: 2.5vw;
+        right: 2.5vw;
+        max-width: 400px;
+    }
+    .form-check.position-absolute {
+        top: 0.25rem !important;
+        right: 0.25rem !important;
+    }
+    .card-text {
+        font-size: 0.95rem;
+        word-break: break-word;
+        overflow-wrap: break-word;
+    }
+    .mobile-sidebar-overlay {
+        width: 100vw;
+        left: 0;
+        right: 0;
+    }
+}
+
+@media (max-width: 480px) {
+    .card-title { font-size: 0.95rem; }
+    .card-text { font-size: 0.9rem; }
+    .btn { font-size: 0.9rem; padding: 0.4rem 0.7rem; }
+    .mobile-sidebar { padding: 0.5rem; }
+    .card-devis { padding: 0.2rem; }
+    .devis-card { margin-bottom: 0.7rem; }
+}
+
+/* Forcer le scroll horizontal si jamais un contenu déborde */
+.container-fluid {
+    overflow-x: hidden;
+}
+
+/* Pour garantir le scroll horizontal si jamais il y a un tableau (sécurité future) */
+.table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Amélioration générale pour petits écrans */
+@media (max-width: 480px) {
+    .card-title { font-size: 0.95rem; }
+    .card-text { font-size: 0.9rem; }
+    .btn { font-size: 0.9rem; padding: 0.4rem 0.7rem; }
+    .mobile-sidebar { padding: 0.5rem; }
 }
 </style>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const btnSupprimer = document.getElementById('btnSupprimerSelection');
-    const btnSupprimerMobile = document.getElementById('btnSupprimerSelectionMobile');
     const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
-    const menuToggle = document.getElementById('menuToggle');
-    const mobileMenu = document.getElementById('mobileMenu');
-
-    // Toggle du menu hamburger
-    menuToggle.addEventListener('click', () => {
-        mobileMenu.classList.toggle('active');
-    });
 
     function getCheckboxes() {
         return document.querySelectorAll('.check-devis');
@@ -148,8 +236,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function toggleBtn() {
         const anyChecked = Array.from(getCheckboxes()).some(chk => chk.checked);
-        btnSupprimer.style.display = anyChecked ? 'inline-block' : 'none';
-        btnSupprimerMobile.style.display = anyChecked ? 'block' : 'none';
+        if (btnSupprimer) {
+            btnSupprimer.style.display = anyChecked ? 'inline-block' : 'none';
+        }
     }
 
     function resetCheckboxes() {
@@ -181,10 +270,11 @@ document.addEventListener('DOMContentLoaded', function() {
     attachCheckboxEvents();
     toggleBtn();
 
-    confirmDeleteBtn.addEventListener('click', function() {
-        const selectedIds = Array.from(getCheckboxes())
-                                 .filter(chk => chk.checked)
-                                 .map(chk => parseInt(chk.value));
+    if (confirmDeleteBtn) {
+        confirmDeleteBtn.addEventListener('click', function() {
+            const selectedIds = Array.from(getCheckboxes())
+                                     .filter(chk => chk.checked)
+                                     .map(chk => parseInt(chk.value));
 
         if(selectedIds.length === 0) return;
 
@@ -223,7 +313,8 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         })
         .catch(err => alert("Erreur : " + err));
-    });
+        });
+    }
 });
 </script>
 {% endblock %}

@@ -4,7 +4,7 @@
 {% block content %}
 <div class="container py-4">
   <h2>Supprimer le point de vente</h2>
-  <p>Êtes-vous sûr de vouloir supprimer "{{ point.nom }}" ? Cette action est irréversible.</p>
+  <p>Êtes-vous sûr de vouloir supprimer "{{ point_vente.nom }}" ? Cette action est irréversible.</p>
   <form method="post">
     {% csrf_token %}
     <button class="btn btn-danger" type="submit">Supprimer</button>

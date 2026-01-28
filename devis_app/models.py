@@ -14,12 +14,13 @@ from django.contrib.auth.models import User
 
 
 class PointVente(models.Model):
+    numero = models.CharField(max_length=50, unique=True, blank=True, null=True, verbose_name="Numéro du point de vente")
     nom = models.CharField(max_length=100)
     adresse = models.CharField(max_length=255, blank=True, null=True)
     telephone = models.CharField(max_length=20, blank=True, null=True)
 
     def __str__(self):
-        return self.nom
+        return f"{self.numero} - {self.nom}" if self.numero else self.nom
 
 class Profile(models.Model):
     ROLE_CHOICES = (
@@ -126,6 +127,10 @@ class Devis(models.Model):
 
     qr_code = models.ImageField(upload_to='qrcodes/', blank=True, null=True)
     client = models.ForeignKey('Client', on_delete=models.SET_NULL, null=True, blank=True, related_name="devis")
+    
+    # Champs pour le mode de règlement
+    pourcentage_acompte = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal('60.00'), verbose_name="Pourcentage d'acompte")
+    pourcentage_livraison = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal('40.00'), verbose_name="Pourcentage à la livraison")
     
     def save(self, *args, **kwargs):
         # --- Génération numéro devis (inchangé) ---

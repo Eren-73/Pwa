@@ -4,18 +4,7 @@ from .models import Devis, LigneDevis,Client,Produit,Categorie
 class DevisForm(forms.ModelForm):
     class Meta:
         model = Devis
-        fields = ['client', 'point_vente', 'regime_vente', 'detail_proposition', 'date_proforma', 'date_validite']
-        widgets = {
-            'client': forms.Select(attrs={'class': 'form-control'}),
-            'point_vente': forms.Select(attrs={'class': 'form-control'}),
-            'regime_vente': forms.Select(
-                attrs={'class': 'form-control'},
-                choices=Devis.REGIME_CHOICES
-            ),
-            'detail_proposition': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-            'date_proforma': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'date_validite': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-        }
+        fields = ['client', 'point_vente', 'regime_vente', 'detail_proposition', 'date_proforma', 'date_validite', 'pourcentage_acompte', 'pourcentage_livraison']
         widgets = {
             'client': forms.Select(attrs={'class': 'form-select'}),
             'point_vente': forms.Select(attrs={'class': 'form-select'}),
@@ -23,6 +12,8 @@ class DevisForm(forms.ModelForm):
             'detail_proposition': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'date_proforma': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'date_validite': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'pourcentage_acompte': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0', 'max': '100'}),
+            'pourcentage_livraison': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0', 'max': '100'}),
         }
 
 class LigneDevisForm(forms.ModelForm):
