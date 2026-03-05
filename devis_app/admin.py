@@ -1,9 +1,16 @@
 from django.contrib import admin
-from .models import Devis, LigneDevis, Produit, Categorie, Client, ActionCommercial, Profile, PointVente
+from .models import Devis, LigneDevis, Produit, Categorie, Client, ActionCommercial, Profile, PointVente, HistoriqueDevis, ResponsableCommercial
 from django.utils.html import format_html
 from django.db.models import Count
 from django.contrib.auth.models import User
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+
+
+@admin.register(ResponsableCommercial)
+class ResponsableCommercialAdmin(admin.ModelAdmin):
+    """L'admin peut ajouter/modifier/supprimer les responsables commerciaux."""
+    list_display = ('nom',)
+    search_fields = ('nom',)
 
 
 # 🔹 Inline pour afficher les lignes de devis directement dans l'admin Devis
@@ -109,3 +116,12 @@ admin.site.register(Categorie, CategorieAdmin)
 admin.site.register(Client, ClientAdmin)
 admin.site.register(ActionCommercial, ActionCommercialAdmin)
 admin.site.register(PointVente, PointVenteAdmin)
+
+# 🔹 Admin pour HistoriqueDevis
+class HistoriqueDevisAdmin(admin.ModelAdmin):
+    list_display = ('devis', 'action', 'utilisateur', 'date_modification')
+    list_filter = ('action', 'date_modification')
+    search_fields = ('devis__numero_devis', 'utilisateur__username')
+    readonly_fields = ('devis', 'utilisateur', 'date_modification', 'action', 'donnees_avant', 'commentaire')
+    
+admin.site.register(HistoriqueDevis, HistoriqueDevisAdmin)

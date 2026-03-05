@@ -1,4 +1,3 @@
-{% extends "base.html" %}
 {% load static %}
 
 <!DOCTYPE html>
@@ -6,10 +5,15 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Proposition commerciale - Proforma</title>
-
+    <title>Version historique - {{ devis.numero_devis }}</title>
+    
     <!-- Bootstrap pour dropdown Exporter -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    
+    <!-- Theme CSS -->
+    <link href="{% static 'css/theme.css' %}?v=5" rel="stylesheet">
+    
     <!-- Styles light mode only -->
     <style>
         html, body {
@@ -45,6 +49,9 @@
                 print-color-adjust: exact;
             }
         }
+    </style>
+    
+    <style>
         @media print {
             table, th, td {
                 border: none !important;
@@ -69,12 +76,11 @@
             text-align: left;
         }
         th {
-            background: #f5f5f5;
+            background: var(--bg-color);
             font-weight: bold;
         }
-        /* Removed stray page-break-after property outside selector */
         .page {
-            background: #fff;
+            background: var(--card-bg);
             width: 210mm;
             min-height: 297mm;
             max-width: 210mm;
@@ -114,7 +120,6 @@
                 overflow: hidden !important;
             }
         }
-        /* Removed stray box-sizing and font-size properties outside selector */
         .box p {
             margin: 2px 0;
             display: flex;
@@ -137,7 +142,7 @@
         }
         .box.client .box-title,
         .box.conseiller .box-title {
-            background-color: #f0f0f0;
+            background-color: var(--bg-color);
             margin: -10px -12px 8px -12px;
             padding: 6px 12px;
             display: block;
@@ -157,9 +162,9 @@
             width: 115px;
             height: 115px;
             object-fit: contain;
-            border: 1px solid #000;
+            border: 1px solid var(--border-color);
             padding: 2px;
-            background: #fff;
+            background: var(--card-bg);
             display: block;
         }
         .qr-code {
@@ -173,7 +178,7 @@
             display: flex;
             justify-content: space-between;
             margin-top: 10px;
-            background-color: #f0f0f0;
+            background-color: var(--bg-color);
             padding: 8px 14px;
         }
         .info-block p {
@@ -192,11 +197,11 @@
             font-size: 11px;
         }
         th, td {
-            border: 1px solid #000;
+            border: 1px solid var(--border-color);
             padding: 6px;
         }
         th {
-            background: #f2f2f2;
+            background: var(--bg-color);
             font-weight: bold;
         }
         /* Totals table */
@@ -204,7 +209,7 @@
             float: right;
             margin-top: 0;
             width: 40% !important;
-            background: #fff;
+            background: var(--card-bg);
         }
         table[style*='width: 40%'] td {
             border: 1px solid #000 !important;
@@ -233,19 +238,20 @@
             font-size: 13px;
             cursor: pointer;
             border-radius: 5px;
-            border: 1px solid #000;
-            background-color: #f0f0f0;
+            border: 1px solid var(--border-color);
+            background-color: var(--input-bg);
+            color: var(--text-color);
             font-weight: bold;
             transition: 0.2s;
         }
         .top-buttons button:hover, .top-buttons .dropdown-toggle:hover {
-            background-color: #dcdcdc;
+            background-color: var(--bg-color);
         }
         .header {
             display: flex;
             flex-direction: row;
             align-items: center;
-            border-bottom: 4px solid #000;
+            border-bottom: 4px solid var(--text-color);
             padding-bottom: 12px;
             margin-bottom: 6px;
         }
@@ -275,8 +281,8 @@
         }
         .doc-info {
             margin-top: 10px;
-            background: #000;
-            color: #fff;
+            background: var(--text-color);
+            color: var(--card-bg);
             display: grid;
             grid-template-columns: 1fr 1fr;
             padding: 10px 14px;
@@ -292,143 +298,155 @@
             justify-content: space-between;
         }
         .box {
-            border: 1px solid #000;
+            border: 1px solid var(--border-color);
             padding: 8px;
             height: 120px;
             flex: 1;
             line-height: 1.2;
-            background-color: #fff;
+            background-color: var(--card-bg);
             max-width: calc(40% - 10px);
             box-sizing: border-box;
             font-size: 10px;
         }
-        .box p {
-            margin: 2px 0;
-            display: flex;
-        }
-        .box p strong {
-            width: 130px;
-            font-weight: bold;
-            flex-shrink: 0;
-        }
-        .box p span {
-            flex: 1;
-        }
-        .box.client { flex: 1; }
-        .box.conseiller { flex: 1; }
-        .box-title {
-            font-weight: bold;
-            display:block;
-            margin-bottom: 8px;
-            text-decoration: underline;
-        }
-        .box.client .box-title,
-        .box.conseiller .box-title {
-            background-color: #f0f0f0;
-            margin: -10px -12px 8px -12px;
-            padding: 6px 12px;
-            display: block;
-            width: calc(100% + 24px);
-            box-sizing: border-box;
-            text-align: left;
-        }
-        .qr-wrapper {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            margin-left: 20px;
-            flex: 0 0 120px;
-        }
-        .qr-wrapper img {
-            width: 115px;
-            height: 115px;
-            object-fit: contain;
-            border: 1px solid #000;
-            padding: 2px;
-            background: #fff;
-            display: block;
-        }
-        .qr-code {
-            margin-top: 8px;
-            font-size: 11px;
+        .alert-warning-banner {
+            background-color: #fff3cd;
+            border: 2px solid #ffc107;
+            color: #856404;
+            padding: 10px;
+            margin-bottom: 15px;
+            border-radius: 5px;
             font-weight: bold;
             text-align: center;
-            letter-spacing: .3px;
         }
-        .info-block {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 10px;
-            background-color: #f0f0f0;
-            padding: 8px 14px;
+        
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
         }
-        .info-block p {
-            margin: 0 15px;
+        
+        /* Fix for print mode */
+        @media print {
+            body, .page, .box, table {
+                background: #fff !important;
+                color: #000 !important;
+            }
+            .doc-info {
+                background: #000 !important;
+                color: #fff !important;
+            }
         }
     </style>
+    
+    <!-- Theme Toggle JS - Inline -->
+    <script>
+        (function() {
+            'use strict';
+            const ThemeManager = {
+                STORAGE_KEY: 'theme-preference',
+                THEME_DARK: 'dark',
+                THEME_LIGHT: 'light',
+                getPreferredTheme() {
+                    const storedTheme = localStorage.getItem(this.STORAGE_KEY);
+                    if (storedTheme) return storedTheme;
+                    return window.matchMedia('(prefers-color-scheme: dark)').matches ? this.THEME_DARK : this.THEME_LIGHT;
+                },
+                setTheme(theme) {
+                    document.documentElement.setAttribute('data-theme', theme);
+                    localStorage.setItem(this.STORAGE_KEY, theme);
+                    this.updateIcon(theme);
+                },
+                updateIcon(theme) {
+                    const toggleBtn = document.getElementById('theme-toggle');
+                    if (!toggleBtn) return;
+                    const icon = toggleBtn.querySelector('i');
+                    if (!icon) return;
+                    if (theme === this.THEME_DARK) {
+                        icon.className = 'bi bi-sun-fill';
+                        toggleBtn.setAttribute('aria-label', 'Passer au thème clair');
+                    } else {
+                        icon.className = 'bi bi-moon-fill';
+                        toggleBtn.setAttribute('aria-label', 'Passer au thème sombre');
+                    }
+                },
+                toggleTheme() {
+                    const currentTheme = document.documentElement.getAttribute('data-theme') || this.getPreferredTheme();
+                    const newTheme = currentTheme === this.THEME_DARK ? this.THEME_LIGHT : this.THEME_DARK;
+                    this.setTheme(newTheme);
+                },
+                init() {
+                    const theme = this.getPreferredTheme();
+                    this.setTheme(theme);
+                    const toggleBtn = document.getElementById('theme-toggle');
+                    if (toggleBtn) {
+                        toggleBtn.addEventListener('click', () => this.toggleTheme());
+                    }
+                }
+            };
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', () => ThemeManager.init());
+            } else {
+                ThemeManager.init();
+            }
+        })();
+    </script>
 </head>
 <body>
+    <!-- Theme Toggle Button -->
+    <button id="theme-toggle" class="theme-toggle no-print" aria-label="Changer de thème">
+        <i class="bi bi-moon-fill"></i>
+    </button>
+    
     <div class="page">
+        <!-- Alert banner for historical version -->
+        <div class="alert-warning-banner no-print">
+            ⚠️ VERSION HISTORIQUE - Modifié le {{ historique.date_modification|date:"d/m/Y à H:i" }}
+            {% if historique.utilisateur %}
+            par {{ historique.utilisateur.get_full_name|default:historique.utilisateur.username }}
+            {% endif %}
+        </div>
+        
         <!-- Header with action buttons -->
         <div class="header">
             <div class="header-logo">
-                <img src="{% static 'images/logo.png' %}"  alt="Logo de l'entreprise" />
+                <img src="{% static 'images/logo.png' %}" alt="Logo de l'entreprise" />
             </div>
             <div class="header-main">
                 <div class="header-text">
                     ENERGIE VERTE – LABORATOIRE R&D - FORMATION – AUDIT & CONSEILS – IMPORT/EXPORT
                 </div>
                 <div class="top-buttons no-print" style="margin-left: 18px;">
-                    <a href="{% url 'dashboard' %}" style="padding: 6px 14px; font-size: 13px; cursor: pointer; border-radius: 5px; border: 1px solid #000; background-color: #f0f0f0; font-weight: bold; text-decoration: none; color: #000; display: inline-block;">⬅ Retour</a>
+                    <button onclick="window.history.back()">⬅ Retour</button>
                     <button onclick="window.print()">🖨 Imprimer</button>
-                    <!-- Dropdown Exporter -->
-                    <div class="dropdown" style="display:inline-block;">
-                        <button class="dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            ⬇ Exporter
-                        </button>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{% url 'export_pdf' devis.slug %}">PDF</a></li>
-                            <li><a class="dropdown-item" href="{% url 'export_devis_word' devis.slug %}">Word</a></li>
-                            <li><a class="dropdown-item" href="{% url 'export_devis_excel' devis.slug %}">Excel</a></li>
-                        </ul>
-                    </div>
                 </div>
             </div>
         </div>
+        
         <!-- Infos document dynamiques -->
         <div class="doc-info">
             <div>Proposition commerciale N° {{ devis.numero_devis }}</div>
-            <div>Émise en date du {{ devis.date_emission|date:"d/m/Y" }}</div>
+            <div>Émise en date du {{ donnees_avant.date_emission }}</div>
         </div>
+        
         <!-- Parties -->
         <div class="parties">
             <div class="box client">
                 <span class="box-title">Client</span>
-                <p><strong>Nom:</strong> <span>{{ devis.client.nom }} {{ devis.client.prenom }}</span></p>
-                <p><strong>Email:</strong> <span>{{ devis.client.email }}</span></p>
-                <p><strong>Téléphone:</strong> <span>{{ devis.client.telephone|default:"Non renseigné" }}</span></p>
-                <p><strong>Adresse:</strong> <span>{{ devis.client.adresse }}</span></p>
+                <p><strong>Nom:</strong> <span>{{ donnees_avant.client.nom }} {{ donnees_avant.client.prenom }}</span></p>
+                <p><strong>Email:</strong> <span>{{ donnees_avant.client.email }}</span></p>
+                <p><strong>Téléphone:</strong> <span>{{ donnees_avant.client.telephone|default:"Non renseigné" }}</span></p>
+                <p><strong>Adresse:</strong> <span>{{ donnees_avant.client.adresse }}</span></p>
             </div>
             <div class="box conseiller">
                 <span class="box-title">Votre conseiller commercial</span>
-                {% if devis.utilisateur %}
-                    <p><strong>Nom:</strong> <span>{{ devis.utilisateur.first_name }} {{ devis.utilisateur.last_name }}</span></p>
-                    <p><strong>Email:</strong> <span>{{ devis.utilisateur.email }}</span></p>
-                    <p><strong>Téléphone:</strong> <span>{{ devis.utilisateur.profile.telephone|default:"Non renseigné" }}</span></p>
-                    {% if devis.point_vente %}
-                        <p><strong>Point de vente:</strong> <span>{{ devis.point_vente.nom }}</span></p>
-                        {% if devis.point_vente.numero %}
-                            <p><strong>N° Point de vente:</strong> <span>{{ devis.point_vente.numero }}</span></p>
-                        {% endif %}
-                        {% if devis.point_vente.telephone %}
-                            <p><strong>Tél. Point de vente:</strong> <span>{{ devis.point_vente.telephone }}</span></p>
-                        {% endif %}
-                    {% else %}
-                        <p><strong>Point de vente:</strong> <span>Non assigné</span></p>
-                    {% endif %}
-                {% else %}
-                    <p><strong>Commercial:</strong> <span>Non assigné</span></p>
+                <p><strong>Nom:</strong> <span>{{ donnees_avant.utilisateur.first_name }} {{ donnees_avant.utilisateur.last_name }}</span></p>
+                <p><strong>Email:</strong> <span>{{ donnees_avant.utilisateur.email }}</span></p>
+                <p><strong>Téléphone:</strong> <span>{{ donnees_avant.utilisateur.telephone|default:"Non renseigné" }}</span></p>
+                <p><strong>Point de vente:</strong> <span>{{ donnees_avant.point_vente.nom }}</span></p>
+                {% if donnees_avant.point_vente.numero %}
+                <p><strong>N° Point de vente:</strong> <span>{{ donnees_avant.point_vente.numero }}</span></p>
+                {% endif %}
+                {% if donnees_avant.point_vente.telephone %}
+                <p><strong>Tél. Point de vente:</strong> <span>{{ donnees_avant.point_vente.telephone }}</span></p>
                 {% endif %}
             </div>
             <div class="qr-wrapper">
@@ -442,23 +460,26 @@
                 <div class="qr-code">CODE: {{ devis.numero_devis }}</div>
             </div>
         </div>
+        
         <!-- Infos Proforma -->
         <div class="info-block">
-            <p><strong>Date de la proforma:</strong> {{ devis.date_proforma|date:"d/m/Y" }}</p>
-            <p><strong>Régime de vente:</strong> {{ devis.regime_vente }}</p>
-            <p><strong>Date de validité:</strong> {{ devis.date_validite|date:"d/m/Y" }}</p>
+            <p><strong>Date de la proforma:</strong> {{ donnees_avant.date_proforma|default:donnees_avant.date_emission }}</p>
+            <p><strong>Régime de vente:</strong> {{ donnees_avant.regime_vente|default:"TTC" }}</p>
+            <p><strong>Date de validité:</strong> {{ donnees_avant.date_validite }}</p>
         </div>
+        
         <!-- Détail proposition -->
         <h2 style="display:flex; align-items:flex-start; margin-top:20px;">
             <span style="font-weight:bold ;font-size:medium ;">DÉTAIL DE LA PROPOSITION :</span>
-            {% if devis.detail_proposition %}
+            {% if donnees_avant.detail_proposition %}
             <span style="margin-left:10px; font-weight:normal; white-space: pre-line;font-size: small;">
-                {{ devis.detail_proposition }}
+                {{ donnees_avant.detail_proposition }}
             </span>
             {% else %}
             <span style="flex-grow:1; border-bottom:1px solid #000; margin-left:10px;"></span>
             {% endif %}
         </h2>
+        
         <!-- Tableau des lignes -->
         <table style="width: 100%; border-collapse: collapse; margin-top: 10px; text-align: left; font-size: 11px;">
             <thead>
@@ -473,85 +494,94 @@
                 </tr>
             </thead>
             <tbody>
-                {% for ligne in lignes %}
+                {% for ligne in donnees_avant.lignes %}
                 <tr>
-                    <td style="padding: 6px; font-weight: bold;">{{ ligne.produit.nom }}</td>
+                    <td style="padding: 6px; font-weight: bold;">{{ ligne.produit }}</td>
                     <td style="padding: 6px;">{{ ligne.quantite }}</td>
-                    <td style="padding: 6px;">{{ ligne.unite }}</td>
-                    <td style="padding: 6px;">{{ ligne.pu }} </td>
-                    <td style="padding: 6px;">{{ ligne.remise }} %</td>
-                    <td style="padding: 6px;">{{ ligne.pu_net }} </td>
-                    <td style="padding: 6px; text-align: right;">{{ ligne.total_ttc }} </td>
+                    <td style="padding: 6px;">{{ ligne.unite|default:"unité" }}</td>
+                    <td style="padding: 6px;">{{ ligne.pu|floatformat:2 }} </td>
+                    <td style="padding: 6px;">{{ ligne.remise|floatformat:2 }} %</td>
+                    <td style="padding: 6px;">{{ ligne.pu_net|floatformat:2 }} </td>
+                    <td style="padding: 6px; text-align: right;">{{ ligne.total_ttc|floatformat:2 }} </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
+        
         <hr style="border: 1px solid black; margin: 10px 0;" />
+        
         <!-- Totaux -->
         <table style="width: 40%; border-collapse: collapse; font-size: 12px; float: right; text-align: right;">
             <tr>
                 <td style="border: 1px solid black; padding: 5px; text-align: left;">Total HT</td>
-                <td style="border: 1px solid black; padding: 5px;">{{ devis.total_ht }} </td>
+                <td style="border: 1px solid black; padding: 5px;">{{ donnees_avant.total_ht|floatformat:2 }} </td>
             </tr>
             <tr>
                 <td style="border: 1px solid black; padding: 5px; text-align: left;">Remise</td>
-                <td style="border: 1px solid black; padding: 5px;">{{ devis.total_remise }} </td>
+                <td style="border: 1px solid black; padding: 5px;">{{ donnees_avant.total_remise|floatformat:2 }} </td>
             </tr>
             <tr>
                 <td style="border: 1px solid black; padding: 5px; text-align: left; font-weight: bold;">
                     TOTAL HT REMISE
                 </td>
                 <td style="border: 1px solid black; padding: 5px; font-weight: bold;">
-                    {{ devis.total_ht_remise }} 
+                    {{ donnees_avant.total_ht_remise|floatformat:2 }} 
                 </td>
             </tr>
             <tr>
                 <td style="border: 1px solid black; padding: 5px; text-align: left;">TVA 18%</td>
-                <td style="border: 1px solid black; padding: 5px;">{{ devis.total_tva|floatformat:2 }} </td>
+                <td style="border: 1px solid black; padding: 5px;">{{ donnees_avant.total_tva|floatformat:2 }} </td>
             </tr>
             <tr>
                 <td style="border: 1px solid black; padding: 5px; text-align: left; font-weight: bold;">
                     TOTAL TTC
                 </td>
                 <td style="border: 1px solid black; padding: 5px; font-weight: bold; color: red;">
-                    {{ devis.total_ttc }} 
+                    {{ donnees_avant.total_ttc|floatformat:2 }} 
                 </td>
             </tr>
         </table>
+        
         <div style="clear: both; height: 20px;"></div>
+        
+        {% if donnees_avant.total_ttc_lettres %}
         <p style="margin-top:0; text-align:left; font-weight:bold;">
             ARRÊTÉE LA PRÉSENTE PROFORMA A LA SOMME DE
         </p>
         <p style="text-align:left; font-weight:bold;">
-            *** {{ devis.total_ttc_lettres }} ***
+            *** {{ donnees_avant.total_ttc_lettres }} ***
         </p>
+        {% endif %}
+        
         <div style="border: 1px solid #000; padding: 12px; font-size: 12px; line-height: 1.6; text-align: justify; margin-top:20px;">
             <p style="margin-top:8px;">
                 <strong>Validité de l'offre :</strong> 1 Mois <br>
                 <strong>Exécution :</strong> 1 Mois <br>
-                <strong>Mode de règlement :</strong> 60% acompte et 40% à la livraison
+                <strong>Mode de règlement :</strong> {{ donnees_avant.pourcentage_acompte|floatformat:0 }}% acompte et {{ donnees_avant.pourcentage_livraison|floatformat:0 }}% à la livraison
             </p>
             <p style="margin:0;">
                 Les prix indiqués tiennent exclusivement compte des modalités mentionnées ci-dessus. 
                 Toute modification pourrait donner lieu à un ajustement de notre offre initiale. 
             </p>
         </div>
-        <div style="text-align: right; margin-top: 10px;">
+        
+        <div style="text-align: right; margin-top: 30px;">
             <p><strong>Responsable Commercial</strong></p>
-            {% if devis.utilisateur %}
-                <p>{{ devis.utilisateur.get_full_name }}</p>
-            {% endif %}
+            <p>{{ donnees_avant.utilisateur.first_name }} {{ donnees_avant.utilisateur.last_name }}</p>
             <br />
             <p><strong>Signature et cachet</strong></p>
         </div>
+        
         <hr style="border: 1px solid black; margin: 30px 0 0 0;" />
+        
         <div class="footer" style="margin-top:0; font-size:11px; text-align:center; line-height:1.5;">
-            Siège Social: Les Rosiers, Cocoteraie 3 Villa N°547 – Grand-Bassam – Cote d’Ivoire | Contact : +225 27
+            Siège Social: Les Rosiers, Cocoteraie 3 Villa N°547 – Grand-Bassam – Cote d'Ivoire | Contact : +225 27
             21 51 47 54 / 07 03 93 91 04 | info@pwaenergysolution.com / www.pwaenergysolution.com | SARL au capital
             de 15.000.000 inscrites au RC : CI-ABJ-2018-B-29366 - CC : 1859574 F / CNPS : 334258 | Banque (NSIA): CI
             042 01229 065230402001 62
         </div>
     </div>
+    
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

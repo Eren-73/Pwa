@@ -25,7 +25,17 @@ SECRET_KEY = 'django-insecure-bm-^&9^9a&xauc!w4+2*v&*2f#@0m_4m=krli61q3)k$tzu4b9
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['192.168.1.68', 'localhost', '127.0.0.1','192.168.1.76','192.168.1.178']
+ALLOWED_HOSTS = ['192.168.1.68', 'localhost', '127.0.0.1','192.168.1.76','192.168.1.178','192.168.1.71']
+
+CSRF_TRUSTED_ORIGINS = [
+    'http://localhost:8000',
+    'http://127.0.0.1:8000',
+    'http://127.0.0.1:62539',
+    'http://192.168.1.68:8000',
+    'http://192.168.1.76:8000',
+    'http://192.168.1.178:8000',
+    'http://192.168.1.71:8000',
+]
 
 
 
@@ -42,6 +52,7 @@ INSTALLED_APPS = [
     'widget_tweaks',
     "django_extensions",
     'devis_app.apps.DevisAppConfig',
+    'django_browser_reload',  # Hot reload pour dev
 ]
 
 MIDDLEWARE = [
@@ -52,6 +63,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'django_browser_reload.middleware.BrowserReloadMiddleware',  # Hot reload
 ]
 
 ROOT_URLCONF = 'Devis.urls'
@@ -133,7 +145,7 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Default primary key field type
 # URL de base pour les QR codes (changez selon votre réseau)
-SITE_URL = "http://192.168.1.178"  # Utilisez votre IP locale pour que ça fonctionne sur mobile
+SITE_URL = "http://192.168.1.71:8000"  # Utilisez votre IP locale pour que ça fonctionne sur mobile
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
@@ -141,3 +153,14 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Auth settings
 LOGIN_REDIRECT_URL = 'dashboard'
 LOGOUT_REDIRECT_URL = 'login'
+
+# Email configuration
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'  # Pour développement - affiche dans console
+# Pour production, utilisez:
+# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+# EMAIL_HOST = 'smtp.gmail.com'  # ou votre serveur SMTP
+# EMAIL_PORT = 587
+# EMAIL_USE_TLS = True
+# EMAIL_HOST_USER = 'votre-email@gmail.com'
+# EMAIL_HOST_PASSWORD = 'votre-mot-de-passe'
+DEFAULT_FROM_EMAIL = 'info@pwaenergysolution.com'

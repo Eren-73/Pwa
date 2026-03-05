@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% block title %}Modifier le devis {{ devis.numero_devis }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <h1 class="mb-4">✏️ Modifier le devis n° {{ devis.numero_devis }}</h1>
+
+    <!-- Messages d'erreur -->
+    {% if messages %}
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Afficher les erreurs du formulaire -->
+    {% if devis_form.errors or formset.errors %}
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <h5>Erreurs dans le formulaire :</h5>
+        {% if devis_form.errors %}
+            <strong>Formulaire principal :</strong>
+            <ul>
+            {% for field, errors in devis_form.errors.items %}
+                <li>{{ field }} : {{ errors|striptags }}</li>
+            {% endfor %}
+            </ul>
+        {% endif %}
+        {% if formset.errors %}
+            <strong>Lignes du devis :</strong>
+            <ul>
+            {% for form_errors in formset.errors %}
+                {% if form_errors %}
+                <li>{{ form_errors }}</li>
+                {% endif %}
+            {% endfor %}
+            </ul>
+        {% endif %}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endif %}
+
+    <form method="post" class="needs-validation" novalidate>
+        {% csrf_token %}
+
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Informations du devis</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="{{ devis_form.client.id_for_label }}" class="form-label">Client</label>
+                        {{ devis_form.client }}
+                    </div>
+                    <div class="col-md-6">
+                        <label for="{{ devis_form.point_vente.id_for_label }}" class="form-label">Point de vente</label>
+                        {{ devis_form.point_vente }}
+                    </div>
+                    <div class="col-md-4">
+                        <label for="{{ devis_form.date_proforma.id_for_label }}" class="form-label">Date Proforma</label>
+                        {{ devis_form.date_proforma }}
+                    </div>
+                    <div class="col-md-4">
+                        <label for="{{ devis_form.date_validite.id_for_label }}" class="form-label">Date de validité</label>
+                        {{ devis_form.date_validite }}
+                    </div>
+                    <div class="col-md-4">
+                        <label for="{{ devis_form.regime_vente.id_for_label }}" class="form-label">Régime de vente</label>
+                        {{ devis_form.regime_vente }}
+                    </div>
+                    <div class="col-md-6">
+                        <label for="{{ devis_form.pourcentage_acompte.id_for_label }}" class="form-label">% Acompte</label>
+                        {{ devis_form.pourcentage_acompte }}
+                    </div>
+                    <div class="col-md-6">
+                        <label for="{{ devis_form.pourcentage_livraison.id_for_label }}" class="form-label">% À la livraison</label>
+                        {{ devis_form.pourcentage_livraison }}
+                    </div>
+                    <div class="col-12">
+                        <label for="{{ devis_form.detail_proposition.id_for_label }}" class="form-label">Détail de la proposition</label>
+                        {{ devis_form.detail_proposition }}
+                    </div>
+                    <div class="col-12">
+                        <div class="form-check">
+                            <input type="checkbox" name="apply_tva" value="yes" class="form-check-input" id="apply_tva" {% if devis.appliquer_tva %}checked{% endif %}>
+                            <label class="form-check-label" for="apply_tva">Appliquer la TVA (18%)</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">Lignes du devis</h5>
+            </div>
+            <div class="card-body">
+                {{ formset.management_form }}
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Produit</th>
+                            <th>Quantité</th>
+                            <th>Unité</th>
+                            <th>Remise (%)</th>
+                            <th>Supprimer</th>
+                        </tr>
+                    </thead>
+                    <tbody id="formset-body">
+                        {% for form in formset %}
+                        <tr>
+                            {{ form.id }}  <!-- Champ caché ID -->
+                            <td>{{ form.produit }}</td>
+                            <td>{{ form.quantite }}</td>
+                            <td>{{ form.unite }}</td>
+                            <td>{{ form.remise }}</td>
+                            <td>{{ form.DELETE }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="d-flex gap-2 mb-4">
+            <button type="submit" class="btn btn-primary">💾 Enregistrer les modifications</button>
+            <a href="{% url 'devis_template' devis.slug %}" class="btn btn-secondary">❌ Annuler</a>
+        </div>
+    </form>
+</div>
+
+<style>
+.card { border-radius: 8px; }
+.card-header { font-weight: bold; }
+.table th { background-color: var(--bg-secondary); }
+</style>
+{% endblock %}

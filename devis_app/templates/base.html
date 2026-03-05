@@ -6,110 +6,261 @@
     <meta charset="UTF-8" />
     <title>{% block title %}PWA Devis{% endblock %}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
+    
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
 
-    <!-- Bootstrap JS (bundle avec Popper pour dropdown) -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-
-    <style>
-        /* Sidebar classique masquée sur mobile uniquement */
-        @media (max-width: 991.98px) {
-            .sidebar {
-                display: none !important;
-            }
+    <!-- Theme CSS INLINE - garantie de fonctionner -->
+    <style id="theme-styles">
+        :root {
+            --bg-color: #f8f9fa;
+            --text-color: #212529;
+            --card-bg: #ffffff;
+            --border-color: #dee2e6;
+            --input-bg: #ffffff;
+            --sidebar-bg: #343a40;
+            --sidebar-text: #ffffff;
+            --shadow: rgba(0,0,0,0.1);
         }
-        body {
-            display: flex;
-            min-height: 100vh;
-            margin: 0;
-            background-color: #f8f9fa;
+        
+        [data-theme="dark"] {
+            --bg-color: #1a1a1a;
+            --text-color: #e9ecef;
+            --card-bg: #2d2d2d;
+            --border-color: #495057;
+            --input-bg: #343a40;
+            --sidebar-bg: #0d0d0d;
+            --sidebar-text: #e9ecef;
+            --shadow: rgba(0,0,0,0.3);
         }
-
+        
+        html, body {
+            background-color: var(--bg-color) !important;
+            color: var(--text-color) !important;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        
+        .content, .container, .container-fluid {
+            background-color: var(--bg-color) !important;
+            color: var(--text-color) !important;
+        }
+        
+        .card, .modal-content, .list-group-item, .card-devis {
+            background-color: var(--card-bg) !important;
+            color: var(--text-color) !important;
+            border-color: var(--border-color) !important;
+        }
+        
+        .form-control, .form-select {
+            background-color: var(--input-bg) !important;
+            color: var(--text-color) !important;
+            border-color: var(--border-color) !important;
+        }
+        
         .sidebar {
+            background: #343a40 !important;
+            color: #fff !important;
+            border-radius: 0;
+            box-shadow: 2px 0 16px 0 rgba(0,0,0,0.18);
+            padding: 2rem 1.2rem 1.2rem 1.2rem;
+            margin: 0;
             min-width: 220px;
-            max-width: 220px;
-            background-color: #343a40;
-            color: white;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
+            width: 240px;
             position: sticky;
             top: 0;
             height: 100vh;
+            transition: box-shadow 0.2s;
+            display: flex !important;
+            flex-direction: column !important;
         }
-
         .sidebar a {
-            color: white;
+            color: rgba(255,255,255,0.85) !important;
+            border-radius: 10px;
+            padding: 0.7rem 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.7rem;
+            font-weight: 500;
+            font-size: 1.05rem;
+            transition: background 0.15s, color 0.15s;
+        }
+        .sidebar a:hover, .sidebar a:focus {
+            background: rgba(255,255,255,0.1);
+            color: #fff !important;
             text-decoration: none;
-            display: block;
-            margin: 15px 0;
         }
-
-        .sidebar a:hover {
-            background-color: #495057;
-            border-radius: 5px;
-            padding-left: 5px;
+        .sidebar h3 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 2rem;
+            color: #6ea8fe;
         }
-
-        .content {
-            flex: 1;
-            padding: 20px;
+        .sidebar .user-profile {
+            background: rgba(255,255,255,0.07);
+            border-radius: 12px;
+            padding: 0.85rem 1rem;
+            margin-top: auto;
+            box-shadow: 0 2px 8px 0 rgba(0,0,0,0.15);
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 0.75rem;
+            border: 1px solid rgba(255,255,255,0.12);
         }
-
-        .profile-circle {
-            width: 40px;
-            height: 40px;
-            background-color: #0d6efd;
+        .sidebar .profile-circle {
+            width: 38px;
+            height: 38px;
             border-radius: 50%;
+            background: #0d6efd;
+            color: #fff;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: white;
-            font-weight: bold;
             font-size: 1.2rem;
-            flex-shrink: 0;
+            font-weight: 700;
+            box-shadow: 0 1px 4px 0 rgba(13,110,253,0.10);
         }
-
-        .user-profile {
-            margin-top: auto;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-            padding-top: 15px;
+        .sidebar .logout-btn {
+            background: rgba(255,255,255,0.1);
+            border: none;
+            color: #fff;
+            border-radius: 8px;
+            padding: 0.4rem 0.6rem;
+            font-size: 1.1rem;
+            transition: background 0.15s;
         }
-
-        .user-profile .btn-outline-light {
-            border-color: rgba(255, 255, 255, 0.3);
+        .sidebar .logout-btn:hover {
+            background: rgba(220,53,69,0.7);
+            color: #fff;
         }
-
-        .user-profile .btn-outline-light:hover {
-            background-color: rgba(255, 255, 255, 0.1);
-            border-color: rgba(255, 255, 255, 0.5);
+        .sidebar .text-muted {
+            color: rgba(255,255,255,0.45) !important;
         }
+    </style>
+    
+    <!-- Apply theme IMMEDIATELY -->
+    <script>
+        (function() {
+            const theme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', theme);
+        })();
+    </script>
 
-
-        .sidebar i {
-            margin-right: 8px;
+    <!-- HTMX -->
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    
+    <!-- Bootstrap JS (bundle avec Popper pour dropdown) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Theme Toggle with HTMX + Debug -->
+    <script>
+        // Keep theme in sync with server
+        let currentTheme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-theme', currentTheme);
+        
+        function toggleThemeHTMX() {
+            const html = document.documentElement;
+            const theme = html.getAttribute('data-theme') || 'light';
+            
+            console.log('🎨 [CLIENT] Toggle theme from:', theme);
+            
+            // Toggle immediately on client
+            const newTheme = theme === 'light' ? 'dark' : 'light';
+            html.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            
+            // Update icon
+            const icon = document.querySelector('#theme-toggle i');
+            if (icon) {
+                icon.className = newTheme === 'dark' ? 'bi bi-sun-fill' : 'bi bi-moon-fill';
+            }
+            
+            console.log('🎨 [CLIENT] New theme:', newTheme);
+            
+            // Notify server via HTMX
+            fetch('{% url "toggle_theme" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({ current_theme: theme })
+            })
+            .then(res => res.json())
+            .then(data => {
+                console.log('✅ [SERVER RESPONSE]:', data);
+            })
+            .catch(err => {
+                console.error('❌ [ERROR]:', err);
+            });
         }
-
-        /* (Déjà défini plus haut) */
-
-        .sidebar li a {
-            padding: 8px 12px;
-            border-radius: 5px;
-            transition: all 0.3s ease;
+        
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
         }
+        
+        // Init on load
+        document.addEventListener('DOMContentLoaded', function() {
+            const theme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', theme);
+            
+            const icon = document.querySelector('#theme-toggle i');
+            if (icon) {
+                icon.className = theme === 'dark' ? 'bi bi-sun-fill' : 'bi bi-moon-fill';
+            }
+            
+            // Attach click handler
+            const btn = document.getElementById('theme-toggle');
+            if (btn) {
+                btn.addEventListener('click', toggleThemeHTMX);
+            }
+            
+            console.log('🎨 [INIT] Theme:', theme);
+        });
+    </script>
 
-        .sidebar li a:hover {
-            background-color: rgba(255, 255, 255, 0.1);
-            transform: translateX(5px);
+    <!-- Styles light mode only -->
+    <style>
+        html, body {
+            background: #fff !important;
+            color: #212529 !important;
         }
-
+        .content, .container, .container-fluid {
+            background: #fff !important;
+            color: #212529 !important;
+        }
+        .card, .modal-content, .list-group-item, .card-devis {
+            background: #fff !important;
+            color: #212529 !important;
+            border-color: #dee2e6 !important;
+        }
+        .form-control, .form-select {
+            background: #fff !important;
+            color: #212529 !important;
+            border-color: #ced4da !important;
+        }
+        .sidebar {
+            background: #343a40 !important;
+            color: #fff !important;
+        }
         @media print {
-            .no-print {
-                display: none;
+            html, body, .content, .container, .card, .modal-content, .card-devis {
+                background: #fff !important;
+                color: #000 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
             }
         }
     </style>
@@ -117,12 +268,11 @@
     {% block extra_head %}{% endblock %}
 </head>
 <body>
-
-    <div style="display: flex; width: 100vw; min-height: 100vh;">
+    <div style="display: flex; width: 100vw; min-height: 100vh; align-items: stretch;">
         <!-- Sidebar visible uniquement sur desktop (≥992px) -->
         <div class="sidebar d-none d-lg-flex flex-column">
             <div class="flex-grow-1">
-                <h3 class="mb-4">Menu</h3>
+                <h3>Menu</h3>
                 <ul class="list-unstyled mb-0">
                     <li><a href="{% url 'dashboard' %}"><i class="bi bi-house-fill"></i>Tableau de bord</a></li>
                     <li><a href="{% url 'liste_clients' %}"><i class="bi bi-people-fill"></i>Clients</a></li>
@@ -132,42 +282,34 @@
                         <small class="text-muted d-block mb-2 ms-2">ADMINISTRATION</small>
                     </li>
                     <li>
-                        <a href="{% url 'admin_dashboard' %}" class="d-flex align-items-center text-warning">
-                            <i class="bi bi-shield-lock-fill me-2"></i>
-                            <span>Dashboard Admin</span>
-                        </a>
+                        <a href="{% url 'admin_dashboard' %}"><i class="bi bi-shield-lock-fill text-warning"></i>Dashboard Admin</a>
                     </li>
                     <li>
-                        <a href="{% url 'liste_commerciaux' %}" class="d-flex align-items-center text-info">
-                            <i class="bi bi-person-badge-fill me-2"></i>
-                            <span>Gérer Commerciaux</span>
-                        </a>
+                        <a href="{% url 'liste_commerciaux' %}"><i class="bi bi-person-badge-fill text-info"></i>Gérer Commerciaux</a>
                     </li>
                     <li>
-                        <a href="{% url 'liste_point_ventes' %}" class="d-flex align-items-center text-success">
-                            <i class="bi bi-building me-2"></i>
-                            <span>Points de Vente</span>
-                        </a>
+                        <a href="{% url 'liste_point_ventes' %}"><i class="bi bi-building text-success"></i>Points de Vente</a>
+                    </li>
+                    <li>
+                        <a href="{% url 'liste_responsables' %}"><i class="bi bi-person-badge me-2 text-secondary"></i>Responsables Commerciaux</a>
                     </li>
                     {% endif %}
                 </ul>
             </div>
             {% if user.is_authenticated %}
             <div class="user-profile">
-                <div class="d-flex align-items-center mb-2">
-                    <div class="profile-circle me-2">
-                        {{ user.username|make_list|first|upper }}
-                    </div>
-                    <div class="flex-grow-1">
-                        <div class="fw-bold" style="font-size: 0.9rem;">{{ user.get_full_name|default:user.username }}</div>
-                        <small class="text-muted" style="font-size: 0.75rem;">{{ user.email }}</small>
-                    </div>
+                <div class="profile-circle flex-shrink-0">
+                    {{ user.username|make_list|first|upper }}
                 </div>
-                <form action="{% url 'logout' %}" method="post" class="m-0">
+                <div class="flex-grow-1" style="min-width:0;">
+                    <div class="fw-bold text-truncate" style="font-size:0.9rem; color:#fff;">{{ user.get_full_name|default:user.username }}</div>
+                    <small class="text-truncate d-block" style="font-size:0.75rem; opacity:0.6; color:#fff;">{{ user.email }}</small>
+                </div>
+                <form action="{% url 'logout' %}" method="post" class="flex-shrink-0 mb-0">
                     {% csrf_token %}
                     <input type="hidden" name="next" value="{% url 'login' %}">
-                    <button type="submit" class="btn btn-outline-light btn-sm w-100" title="Se déconnecter">
-                        <i class="bi bi-box-arrow-right me-1"></i>Déconnexion
+                    <button type="submit" class="btn btn-sm logout-btn" title="Se déconnecter">
+                        <i class="bi bi-box-arrow-right"></i>
                     </button>
                 </form>
             </div>
@@ -189,6 +331,7 @@
                     <li><a href="{% url 'admin_dashboard' %}" class="d-block py-2 text-warning"><i class="bi bi-shield-lock-fill me-2"></i>Dashboard Admin</a></li>
                     <li><a href="{% url 'liste_commerciaux' %}" class="d-block py-2 text-info"><i class="bi bi-person-badge-fill me-2"></i>Gérer Commerciaux</a></li>
                     <li><a href="{% url 'liste_point_ventes' %}" class="d-block py-2 text-success"><i class="bi bi-building me-2"></i>Points de Vente</a></li>
+                    <li><a href="{% url 'liste_responsables' %}" class="d-block py-2 text-secondary"><i class="bi bi-person-badge me-2"></i>Responsables Commerciaux</a></li>
                     {% endif %}
                 </ul>
                 {% if user.is_authenticated %}

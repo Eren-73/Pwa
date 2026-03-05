@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from .models import Devis, LigneDevis,Client,Categorie,Produit,PointVente
+from .models import Devis, LigneDevis, Client, Categorie, Produit, PointVente, HistoriqueDevis, ResponsableCommercial
 from .forms import DevisForm, LigneDevisForm,ClientForm,ProduitForm,CategorieForm
 from django.forms import modelformset_factory
 from django.urls import reverse
@@ -26,64 +26,165 @@ from .models import ActionCommercial
 import os
 from docx.oxml import parse_xml
 import io
+from django.core.mail import EmailMessage
 
 @login_required(login_url='login')
-def creer_devis(request):
+def creer_devis(request, slug=None):
+    # Mode modification si slug est fourni
+    devis_existant = None
+    if slug:
+        devis_existant = get_object_or_404(Devis, slug=slug)
+    
     LigneDevisFormSet = modelformset_factory(
-        LigneDevis, form=LigneDevisForm, extra=0, can_delete=True
+        LigneDevis, form=LigneDevisForm, extra=3 if slug else 0, can_delete=True
     )
 
     if request.method == 'POST':
-        devis_form = DevisForm(request.POST)
-        formset = LigneDevisFormSet(request.POST, queryset=LigneDevis.objects.none())
+        if slug:
+            # Mode modification - Sauvegarder l'état avant modification
+            lignes_data = []
+            for ligne in devis_existant.lignes.all():
+                lignes_data.append({
+                    'produit': ligne.produit.nom if ligne.produit else '',
+                    'quantite': float(ligne.quantite),
+                    'unite': ligne.unite,
+                    'pu': float(ligne.pu),
+                    'pu_net': float(ligne.pu_net) if ligne.pu_net else float(ligne.pu),
+                    'remise': float(ligne.remise),
+                    'total_ht': float(ligne.total_ht),
+                    'total_ttc': float(ligne.total_ttc) if ligne.total_ttc else float(ligne.total_ht)
+                })
+            
+            donnees_avant = {
+                'numero_devis': devis_existant.numero_devis,
+                'date_emission': devis_existant.date_emission.isoformat(),
+                'date_validite': devis_existant.date_validite.isoformat(),
+                'date_proforma': devis_existant.date_proforma.isoformat() if devis_existant.date_proforma else devis_existant.date_emission.isoformat(),
+                'total_ht': float(devis_existant.total_ht),
+                'total_remise': float(devis_existant.total_remise) if devis_existant.total_remise else 0,
+                'total_ht_remise': float(devis_existant.total_ht_remise) if devis_existant.total_ht_remise else float(devis_existant.total_ht),
+                'total_tva': float(devis_existant.total_tva) if devis_existant.total_tva else 0,
+                'total_ttc': float(devis_existant.total_ttc),
+                'total_ttc_lettres': devis_existant.total_ttc_lettres if devis_existant.total_ttc_lettres else '',
+                'regime_vente': devis_existant.regime_vente,
+                'appliquer_tva': devis_existant.appliquer_tva,
+                'detail_proposition': devis_existant.detail_proposition if devis_existant.detail_proposition else '',
+                'pourcentage_acompte': float(devis_existant.pourcentage_acompte) if devis_existant.pourcentage_acompte else 60,
+                'pourcentage_livraison': float(devis_existant.pourcentage_livraison) if devis_existant.pourcentage_livraison else 40,
+                'client': {
+                    'nom': devis_existant.client.nom if devis_existant.client else '',
+                    'prenom': devis_existant.client.prenom if devis_existant.client else '',
+                    'email': devis_existant.client.email if devis_existant.client else '',
+                    'telephone': devis_existant.client.telephone if devis_existant.client else '',
+                    'adresse': devis_existant.client.adresse if devis_existant.client else '',
+                },
+                'point_vente': {
+                    'nom': devis_existant.point_vente.nom if devis_existant.point_vente else '',
+                    'adresse': devis_existant.point_vente.adresse if devis_existant.point_vente else '',
+                    'telephone': devis_existant.point_vente.telephone if devis_existant.point_vente else '',
+                    'email': devis_existant.point_vente.email if devis_existant.point_vente else '',
+                    'numero': devis_existant.point_vente.numero if devis_existant.point_vente else '',
+                },
+                'utilisateur': {
+                    'first_name': devis_existant.utilisateur.first_name if devis_existant.utilisateur else '',
+                    'last_name': devis_existant.utilisateur.last_name if devis_existant.utilisateur else '',
+                    'email': devis_existant.utilisateur.email if devis_existant.utilisateur else '',
+                    'telephone': devis_existant.utilisateur.profile.telephone if (devis_existant.utilisateur and hasattr(devis_existant.utilisateur, 'profile') and devis_existant.utilisateur.profile.telephone) else '',
+                },
+                'lignes': lignes_data
+            }
+            
+            devis_form = DevisForm(request.POST, request.FILES, instance=devis_existant)
+            formset = LigneDevisFormSet(request.POST, queryset=devis_existant.lignes.all())
+        else:
+            # Mode création
+            devis_form = DevisForm(request.POST, request.FILES)
+            formset = LigneDevisFormSet(request.POST, queryset=LigneDevis.objects.none())
 
         if devis_form.is_valid() and formset.is_valid():
             devis = devis_form.save(commit=False)
-
-            # 🔹 Lier le devis à l'utilisateur connecté (commercial)
-            devis.utilisateur = request.user
+            
+            if slug:
+                # Mise à jour du numéro avec nouvelle date
+                ancien_numero_parts = devis.numero_devis.split('-')
+                numero_sequence = ancien_numero_parts[-1]
+                
+                from datetime import date
+                today = date.today()
+                date_str = today.strftime('%Y-%m-%d')
+                
+                devis.numero_devis = f"{date_str}-{numero_sequence}"
+                devis.date_emission = today
+                
+                from django.utils.text import slugify
+                devis.slug = slugify(devis.numero_devis)
+            else:
+                # 🔹 Lier le devis à l'utilisateur connecté (commercial)
+                devis.utilisateur = request.user
 
             # ✅ Vérifier si TVA doit être appliquée
             apply_tva = request.POST.get("apply_tva", "yes")
-            if apply_tva == "no":
-                devis.appliquer_tva = False
-            else:
-                devis.appliquer_tva = True
+            devis.appliquer_tva = (apply_tva == "yes")
 
             devis.save()
 
+            # Supprimer anciennes lignes si modification
+            if slug:
+                devis.lignes.all().delete()
+
             # ✅ Enregistrer chaque ligne
             for form in formset:
-                if form.cleaned_data:
+                if form.cleaned_data and not form.cleaned_data.get('DELETE', False):
                     ligne = form.save(commit=False)
                     ligne.devis = devis
                     ligne.save()
 
-            # ✅ Générer le lien public
-            current_site_ip = "192.168.1.68"
-            devis_url = f"http://{current_site_ip}:8000{reverse('devis_template', args=[devis.pk])}"
+            if slug:
+                # Enregistrer dans l'historique
+                HistoriqueDevis.objects.create(
+                    devis=devis,
+                    utilisateur=request.user,
+                    action='modification',
+                    donnees_avant=donnees_avant,
+                    commentaire=f"Modification par {request.user.username}"
+                )
+                messages.success(request, f"Devis n°{devis.numero_devis} modifié avec succès.")
+            else:
+                # ✅ Générer le lien public
+                current_site_ip = "192.168.1.68"
+                devis_url = f"http://{current_site_ip}:8000{reverse('devis_template', args=[devis.pk])}"
 
-            # ✅ Générer le QR code
-            print("Lien dans le QR :", devis_url)
-            devis.qr_code.save(
-                f"qr_{devis.slug}.png",
-                generate_qr_code(devis.numero_devis),
-                save=True
-            )
+                # ✅ Générer le QR code
+                print("Lien dans le QR :", devis_url)
+                devis.qr_code.save(
+                    f"qr_{devis.slug}.png",
+                    generate_qr_code(devis.numero_devis),
+                    save=True
+                )
+                # Ajout d'un message de succès après création
+                messages.success(request, f"Proposition commerciale n°{devis.numero_devis} créée avec succès.")
 
             return redirect('devis_template', slug=devis.slug)
 
     else:
-        devis_form = DevisForm()
-        formset = LigneDevisFormSet(queryset=LigneDevis.objects.none())
+        if slug:
+            # Mode modification - pré-remplir avec données existantes
+            devis_form = DevisForm(instance=devis_existant)
+            formset = LigneDevisFormSet(queryset=devis_existant.lignes.all())
+        else:
+            # Mode création
+            devis_form = DevisForm()
+            formset = LigneDevisFormSet(queryset=LigneDevis.objects.none())
 
-    # 🔹 Nombre total de devis créés par l’utilisateur connecté
+    # 🔹 Nombre total de devis créés par l'utilisateur connecté
     nombre_devis = Devis.objects.filter(utilisateur=request.user).count()
 
     return render(request, 'devis/creer_devis.html', {
         'devis_form': devis_form,
         'formset': formset,
-        'nombre_devis': nombre_devis,  # ➕ tu peux l'afficher dans ton template
+        'nombre_devis': nombre_devis,
+        'mode_modification': slug is not None,
+        'devis': devis_existant if slug else None,
     })
 
 def devis_template(request, slug):
@@ -96,12 +197,17 @@ def devis_template(request, slug):
         'qr_code_url': request.build_absolute_uri(devis.qr_code.url) if devis.qr_code else None,
     })
 
+@login_required(login_url='login')
 def dashboard(request):
     # Filtrer par date si des paramètres GET sont passés
     date_debut = request.GET.get('date_debut')
     date_fin = request.GET.get('date_fin')
 
-    devis_list = Devis.objects.all().order_by('-date_emission')
+    # Admin voit tous les devis, commercial voit seulement les siens
+    if request.user.is_superuser:
+        devis_list = Devis.objects.all().order_by('-date_emission')
+    else:
+        devis_list = Devis.objects.filter(utilisateur=request.user).order_by('-date_emission')
 
     if date_debut and date_fin:
         devis_list = devis_list.filter(
@@ -113,23 +219,24 @@ def dashboard(request):
 
 
 
-
-
+@login_required(login_url='login')
 def liste_clients(request):
     clients = Client.objects.all()
     return render(request, 'clients/clients.html', {'clients': clients})
 
 
+@login_required(login_url='login')
 def ajouter_client(request):
     if request.method == 'POST':
         form = ClientForm(request.POST)
         if form.is_valid():
-            client = form.save()  # ✅ slug généré automatiquement
+            client = form.save()  # 
             return redirect('liste_clients')
     else:
         form = ClientForm()
         return render(request, 'clients/ajouter_client.html', {'form': form})
 
+@login_required(login_url='login')
 def modifier_client(request, slug):
     client = get_object_or_404(Client, slug=slug)
     if request.method == 'POST':
@@ -142,6 +249,7 @@ def modifier_client(request, slug):
         return render(request, 'clients/modifier_client.html', {'form': form, 'client': client})
 
 
+@login_required(login_url='login')
 def supprimer_client(request, slug):
     client = get_object_or_404(Client, slug=slug)
     if request.method == 'POST':
@@ -149,6 +257,7 @@ def supprimer_client(request, slug):
         return redirect('/clients/?deleted=1')
     return render(request, 'supprimer_client.html', {'client': client})
 
+@login_required(login_url='login')
 def devis_par_client(request, slug):
     client = get_object_or_404(Client, slug=slug)
     devis_list = Devis.objects.filter(client=client)
@@ -157,6 +266,7 @@ def devis_par_client(request, slug):
         'devis_list': devis_list
     })
 
+@login_required(login_url='login')
 def detail_devis(request, slug):
     devis = get_object_or_404(Devis, slug=slug)
     # Récupère les lignes associées au devis pour l'affichage
@@ -166,6 +276,176 @@ def detail_devis(request, slug):
         "devis": devis,
         "lignes": lignes
     })
+
+
+@login_required(login_url='login')
+def modifier_devis(request, slug):
+    """Modifier un devis existant en conservant le numéro"""
+    from .models import HistoriqueDevis
+    import json
+    from django.forms import model_to_dict
+    
+    devis = get_object_or_404(Devis, slug=slug)
+    LigneDevisFormSet = modelformset_factory(
+        LigneDevis, form=LigneDevisForm, extra=3, can_delete=True
+    )
+    
+    if request.method == 'POST':
+        # Sauvegarder l'état avant modification (convertir Decimal en float pour JSON)
+        lignes_data = []
+        for ligne in devis.lignes.all():
+            lignes_data.append({
+                'produit': ligne.produit.nom if ligne.produit else '',
+                'quantite': float(ligne.quantite),
+                'unite': ligne.unite,
+                'pu': float(ligne.pu),
+                'pu_net': float(ligne.pu_net) if ligne.pu_net else float(ligne.pu),
+                'remise': float(ligne.remise),
+                'total_ht': float(ligne.total_ht),
+                'total_ttc': float(ligne.total_ttc) if ligne.total_ttc else float(ligne.total_ht)
+            })
+        
+        donnees_avant = {
+            'numero_devis': devis.numero_devis,
+            'date_emission': devis.date_emission.isoformat(),
+            'date_validite': devis.date_validite.isoformat(),
+            'date_proforma': devis.date_proforma.isoformat() if devis.date_proforma else devis.date_emission.isoformat(),
+            'total_ht': float(devis.total_ht),
+            'total_remise': float(devis.total_remise) if devis.total_remise else 0,
+            'total_ht_remise': float(devis.total_ht_remise) if devis.total_ht_remise else float(devis.total_ht),
+            'total_tva': float(devis.total_tva) if devis.total_tva else 0,
+            'total_ttc': float(devis.total_ttc),
+            'total_ttc_lettres': devis.total_ttc_lettres if devis.total_ttc_lettres else '',
+            'regime_vente': devis.regime_vente,
+            'appliquer_tva': devis.appliquer_tva,
+            'detail_proposition': devis.detail_proposition if devis.detail_proposition else '',
+            'pourcentage_acompte': float(devis.pourcentage_acompte) if devis.pourcentage_acompte else 60,
+            'pourcentage_livraison': float(devis.pourcentage_livraison) if devis.pourcentage_livraison else 40,
+            'client': {
+                'nom': devis.client.nom if devis.client else '',
+                'prenom': devis.client.prenom if devis.client else '',
+                'email': devis.client.email if devis.client else '',
+                'telephone': devis.client.telephone if devis.client else '',
+                'adresse': devis.client.adresse if devis.client else '',
+            },
+            'point_vente': {
+                'nom': devis.point_vente.nom if devis.point_vente else '',
+                'adresse': devis.point_vente.adresse if devis.point_vente else '',
+                'telephone': devis.point_vente.telephone if devis.point_vente else '',
+                'email': devis.point_vente.email if devis.point_vente else '',
+                'numero': devis.point_vente.numero if devis.point_vente else '',
+            },
+            'utilisateur': {
+                'first_name': devis.utilisateur.first_name if devis.utilisateur else '',
+                'last_name': devis.utilisateur.last_name if devis.utilisateur else '',
+                'email': devis.utilisateur.email if devis.utilisateur else '',
+                'telephone': devis.utilisateur.profile.telephone if (devis.utilisateur and hasattr(devis.utilisateur, 'profile') and devis.utilisateur.profile.telephone) else '',
+            },
+            'lignes': lignes_data
+        }
+        
+        devis_form = DevisForm(request.POST, instance=devis)
+        formset = LigneDevisFormSet(request.POST, queryset=devis.lignes.all())
+        
+        if devis_form.is_valid() and formset.is_valid():
+            # Sauvegarder le devis avec mise à jour de la date uniquement
+            devis = devis_form.save(commit=False)
+            
+            # Extraire le numéro séquentiel de l'ancien numéro de devis
+            ancien_numero_parts = devis.numero_devis.split('-')
+            numero_sequence = ancien_numero_parts[-1]  # Garde le dernier élément (ex: 00001)
+            
+            # Générer le nouveau numéro avec la date actuelle mais le même numéro séquentiel
+            from datetime import date
+            today = date.today()
+            date_str = today.strftime('%Y-%m-%d')
+            
+            # Nouveau numéro de devis avec même séquence
+            devis.numero_devis = f"{date_str}-{numero_sequence}"
+            devis.date_emission = today
+            
+            # Générer un nouveau slug basé sur le nouveau numéro
+            from django.utils.text import slugify
+            devis.slug = slugify(devis.numero_devis)
+            
+            # Vérifier la TVA
+            apply_tva = request.POST.get("apply_tva", "yes")
+            devis.appliquer_tva = (apply_tva == "yes")
+            
+            devis.save()
+            
+            # Supprimer les anciennes lignes et créer les nouvelles
+            devis.lignes.all().delete()
+            for form in formset:
+                if form.cleaned_data and not form.cleaned_data.get('DELETE', False):
+                    ligne = form.save(commit=False)
+                    ligne.devis = devis
+                    ligne.save()
+            
+            # Enregistrer dans l'historique
+            HistoriqueDevis.objects.create(
+                devis=devis,
+                utilisateur=request.user,
+                action='modification',
+                donnees_avant=donnees_avant,
+                commentaire=f"Modification par {request.user.username}"
+            )
+            
+            messages.success(request, f"Devis n°{devis.numero_devis} modifié avec succès.")
+            return redirect('devis_template', slug=devis.slug)
+        else:
+            # Afficher les erreurs
+            if not devis_form.is_valid():
+                messages.error(request, f"Erreurs dans le formulaire : {devis_form.errors}")
+            if not formset.is_valid():
+                messages.error(request, f"Erreurs dans les lignes : {formset.errors}")
+    else:
+        devis_form = DevisForm(instance=devis)
+        formset = LigneDevisFormSet(queryset=devis.lignes.all())
+    
+    return render(request, 'devis/modifier_devis.html', {
+        'devis_form': devis_form,
+        'formset': formset,
+        'devis': devis,
+    })
+
+
+@login_required(login_url='login')
+def historique_devis(request, slug):
+    """Afficher l'historique des modifications d'un devis"""
+    from .models import HistoriqueDevis
+    
+    devis = get_object_or_404(Devis, slug=slug)
+    historique = HistoriqueDevis.objects.filter(devis=devis).order_by('-date_modification')
+    
+    return render(request, 'devis/historique_devis.html', {
+        'devis': devis,
+        'historique': historique,
+    })
+
+
+@login_required(login_url='login')
+def voir_version_historique(request, historique_id):
+    """
+    Affiche une version historique du devis comme une facture complète
+    """
+    historique = get_object_or_404(HistoriqueDevis, id=historique_id)
+    devis_actuel = historique.devis
+    
+    # Créer un objet devis temporaire avec les données historiques
+    if historique.donnees_avant:
+        # On va passer les données historiques au template
+        context = {
+            'devis': devis_actuel,
+            'historique': historique,
+            'donnees_avant': historique.donnees_avant,
+            'est_version_historique': True,
+        }
+        return render(request, 'devis/version_historique.html', context)
+    else:
+        messages.warning(request, "Aucune donnée historique disponible pour cette version.")
+        return redirect('historique_devis', slug=devis_actuel.slug)
+
 
 @csrf_exempt
 def supprimer_devis_selectionnes(request):
@@ -180,7 +460,95 @@ def supprimer_devis_selectionnes(request):
     return JsonResponse({"success": False, "error": "Méthode non autorisée"}, status=405)
 
 
+@login_required(login_url='login')
+def export_pdf(request, slug):
+    """
+    Exporte un devis en PDF en utilisant weasyprint
+    """
+    devis = get_object_or_404(Devis, slug=slug)
+    lignes = devis.lignes.all()
+    
+    # Rendre le template HTML avec le paramètre is_pdf
+    html_string = render_to_string('devis/devis_template.html', {
+        'devis': devis,
+        'lignes': lignes,
+        'qr_code_url': request.build_absolute_uri(devis.qr_code.url) if devis.qr_code else None,
+        'is_pdf': True,  # Paramètre pour masquer les boutons
+    })
+    
+    # Créer le PDF avec weasyprint
+    html = weasyprint.HTML(string=html_string, base_url=request.build_absolute_uri())
+    pdf = html.write_pdf()
+    
+    # Créer la réponse HTTP
+    response = HttpResponse(pdf, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="devis_{devis.numero_devis}.pdf"'
+    
+    return response
 
+
+@login_required(login_url='login')
+def envoyer_devis_par_email(request, slug):
+    """
+    Envoie le devis par email au client avec le PDF en pièce jointe
+    """
+    devis = get_object_or_404(Devis, slug=slug)
+    lignes = devis.lignes.all()
+    
+    # Vérifier si le client a un email
+    if not devis.client or not devis.client.email:
+        messages.error(request, "Le client n'a pas d'adresse email.")
+        return redirect('devis_template', slug=slug)
+    
+    # Générer le PDF
+    html_string = render_to_string('devis/devis_template.html', {
+        'devis': devis,
+        'lignes': lignes,
+        'qr_code_url': request.build_absolute_uri(devis.qr_code.url) if devis.qr_code else None,
+        'is_pdf': True,
+    })
+    
+    html = weasyprint.HTML(string=html_string, base_url=request.build_absolute_uri())
+    pdf = html.write_pdf()
+    
+    # Préparer l'email
+    sujet = f"Devis N° {devis.numero_devis} - PWA Energy Solution"
+    message = f"""Bonjour {devis.client.prenom} {devis.client.nom},
+
+Veuillez trouver ci-joint votre devis N° {devis.numero_devis} d'un montant de {devis.total_ttc} CFA.
+
+Détails du devis:
+- Date d'émission: {devis.date_emission.strftime('%d/%m/%Y')}
+- Date de validité: {devis.date_validite.strftime('%d/%m/%Y')}
+- Montant Total TTC: {devis.total_ttc} CFA
+
+N'hésitez pas à nous contacter pour toute question.
+
+Cordialement,
+{devis.utilisateur.get_full_name() if devis.utilisateur else 'PWA Energy Solution'}
+"""
+    
+    # Créer et envoyer l'email
+    email = EmailMessage(
+        subject=sujet,
+        body=message,
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        to=[devis.client.email],
+    )
+    
+    # Attacher le PDF
+    email.attach(f'devis_{devis.numero_devis}.pdf', pdf, 'application/pdf')
+    
+    try:
+        email.send()
+        messages.success(request, f"Devis envoyé avec succès à {devis.client.email}")
+    except Exception as e:
+        messages.error(request, f"Erreur lors de l'envoi de l'email: {str(e)}")
+    
+    return redirect('devis_template', slug=slug)
+
+
+@login_required(login_url='login')
 def export_devis_excel(request, slug):
     devis = get_object_or_404(Devis, slug=slug)
     lignes = devis.lignes.all()
@@ -387,6 +755,7 @@ def export_devis_excel(request, slug):
     return response
 
 
+@login_required(login_url='login')
 def liste_materiels(request):
     """Affiche la liste des matériels / produits.
 
@@ -402,6 +771,7 @@ def liste_materiels(request):
     })
 
 
+@login_required(login_url='login')
 def ajouter_produit(request):
     """Stub view to add a product. Implements minimal POST handling using ProduitForm.
 
@@ -417,6 +787,7 @@ def ajouter_produit(request):
     return render(request, 'modifier_produit.html', {'form': form})
 
 
+@login_required(login_url='login')
 def modifier_produit(request, produit_id):
     produit = get_object_or_404(Produit, id=produit_id)
     if request.method == 'POST':
@@ -429,6 +800,7 @@ def modifier_produit(request, produit_id):
     return render(request, 'modifier_produit.html', {'form': form, 'produit': produit})
 
 
+@login_required(login_url='login')
 def supprimer_produit(request, produit_id):
     produit = get_object_or_404(Produit, id=produit_id)
     if request.method == 'POST':
@@ -437,6 +809,7 @@ def supprimer_produit(request, produit_id):
     return render(request, 'supprimer_produit.html', {'produit': produit})
 
 
+@login_required(login_url='login')
 def ajouter_categorie(request):
     if request.method == 'POST':
         form = CategorieForm(request.POST)
@@ -498,6 +871,7 @@ def export_pdf(request, slug):
         return HttpResponse(html)  # Fallback to HTML for debugging
 
 
+@login_required(login_url='login')
 def export_devis_word(request, slug):
     """Minimal Word export: creates a simple .docx with basic devis info.
 
@@ -526,27 +900,74 @@ def export_devis_word(request, slug):
     return response
 
 
+@login_required(login_url='login')
 def liste_point_ventes(request):
-    # Minimal placeholder: list point_vente names if model exists, otherwise empty list
-    try:
-        from .models import PointVente
-        points = PointVente.objects.all()
-    except Exception:
-        points = []
+    """
+    Liste tous les points de vente.
+    """
+    points = PointVente.objects.all().order_by('nom')
     return render(request, 'points_vente/point_vente_list.html', {'points': points})
 
 
+@login_required(login_url='login')
 def ajouter_point_vente(request):
-    # placeholder form/view - implement with a ModelForm if needed
-    return HttpResponse('Ajout point de vente - à implémenter')
+    """
+    Ajouter un nouveau point de vente.
+    """
+    from .forms import PointVenteForm
+    
+    if request.method == 'POST':
+        form = PointVenteForm(request.POST)
+        if form.is_valid():
+            point_vente = form.save()
+            messages.success(request, f"Point de vente '{point_vente.nom}' ajouté avec succès!")
+            return redirect('liste_point_ventes')
+    else:
+        form = PointVenteForm()
+    
+    return render(request, 'points_vente/ajouter_point_vente.html', {'form': form})
 
 
+@login_required(login_url='login')
 def modifier_point_vente(request, pk):
-    return HttpResponse('Modifier point de vente - à implémenter')
+    """
+    Modifier un point de vente existant.
+    """
+    from .forms import PointVenteForm
+    
+    point_vente = get_object_or_404(PointVente, pk=pk)
+    
+    if request.method == 'POST':
+        form = PointVenteForm(request.POST, instance=point_vente)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f"Point de vente '{point_vente.nom}' modifié avec succès!")
+            return redirect('liste_point_ventes')
+    else:
+        form = PointVenteForm(instance=point_vente)
+    
+    return render(request, 'points_vente/modifier_point_vente.html', {
+        'form': form,
+        'point_vente': point_vente
+    })
 
 
+@login_required(login_url='login')
 def supprimer_point_vente(request, pk):
-    return HttpResponse('Supprimer point de vente - à implémenter')
+    """
+    Supprimer un point de vente.
+    """
+    point_vente = get_object_or_404(PointVente, pk=pk)
+    
+    if request.method == 'POST':
+        nom = point_vente.nom
+        point_vente.delete()
+        messages.success(request, f"Point de vente '{nom}' supprimé avec succès!")
+        return redirect('liste_point_ventes')
+    
+    return render(request, 'points_vente/supprimer_point_vente.html', {
+        'point_vente': point_vente
+    })
 
 
 
@@ -811,5 +1232,85 @@ def regenerate_qr_codes_view(request):
         'success_count': success_count,
         'error_count': error_count,
     })
-    
-    return render(request, 'commercial/supprimer_commercial.html', {'commercial': user})
+
+
+def custom_login(request):
+    """Vue de connexion avec redirection selon le rôle."""
+    if request.user.is_authenticated:
+        if request.user.is_superuser:
+            return redirect('admin_dashboard')
+        return redirect('dashboard')
+
+    if request.method == 'POST':
+        from django.contrib.auth import authenticate, login
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        user = authenticate(request, username=username, password=password)
+        if user is not None:
+            login(request, user)
+            if user.is_superuser:
+                return redirect('admin_dashboard')
+            return redirect('dashboard')
+        else:
+            messages.error(request, "Nom d'utilisateur ou mot de passe incorrect.")
+
+    return render(request, 'Authentification/login.html')
+
+
+@login_required
+def liste_responsables(request):
+    """Liste des responsables commerciaux — accessible admin uniquement."""
+    if not request.user.is_superuser:
+        messages.error(request, "Accès non autorisé.")
+        return redirect('dashboard')
+    responsables = ResponsableCommercial.objects.all()
+    return render(request, 'Dashboard_Admin/responsables.html', {'responsables': responsables})
+
+
+@login_required
+def ajouter_responsable(request):
+    """Ajouter un responsable commercial."""
+    if not request.user.is_superuser:
+        messages.error(request, "Accès non autorisé.")
+        return redirect('dashboard')
+    if request.method == 'POST':
+        nom = request.POST.get('nom', '').strip()
+        if nom:
+            ResponsableCommercial.objects.create(nom=nom)
+            messages.success(request, f"Responsable '{nom}' ajouté.")
+        else:
+            messages.error(request, "Le nom ne peut pas être vide.")
+    return redirect('liste_responsables')
+
+
+@login_required
+def supprimer_responsable(request, pk):
+    """Supprimer un responsable commercial."""
+    if not request.user.is_superuser:
+        messages.error(request, "Accès non autorisé.")
+        return redirect('dashboard')
+    responsable = get_object_or_404(ResponsableCommercial, pk=pk)
+    responsable.delete()
+    messages.success(request, "Responsable supprimé.")
+    return redirect('liste_responsables')
+
+
+def responsables_suggestions(request):
+    """Retourne uniquement les commerciaux actifs pour le champ nom_responsable."""
+    from django.contrib.auth.models import User
+    commerciaux = User.objects.filter(
+        is_active=True,
+        profile__role='commercial'
+    ).order_by('last_name', 'first_name')
+    noms = [u.get_full_name() or u.username for u in commerciaux]
+    return JsonResponse(noms, safe=False)
+
+
+def client_factures(request, client_slug):
+    """Portail client : affiche toutes les factures d'un client via son slug."""
+    client = get_object_or_404(Client, slug=client_slug)
+    devis_list = Devis.objects.filter(client=client).order_by('-date_emission')
+    return render(request, 'clients/client_factures.html', {
+        'client': client,
+        'devis_list': devis_list,
+    })

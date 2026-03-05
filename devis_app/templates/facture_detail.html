@@ -1,24 +1,78 @@
 <!-- Pas d'extension base.html ici pour ne pas afficher le sidebar sur la facture -->
+{% load static %}
 <!DOCTYPE html>
 <html lang="fr">
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>Facture - {{ devis.numero_devis }}</title>
+	
+	<!-- Apply theme immediately to prevent flash -->
+	<script>
+		(function() {
+			const theme = localStorage.getItem('theme-preference') || 
+				(window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+			document.documentElement.setAttribute('data-theme', theme);
+		})();
+	</script>
+	
+	<!-- Bootstrap Icons -->
+	<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+	
+	<!-- Theme CSS -->
+	<link href="{% static 'css/theme.css' %}?v=5" rel="stylesheet">
+	
+	<!-- Styles light mode only -->
+	<style>
+		html, body {
+			background: #fff !important;
+			color: #212529 !important;
+		}
+		.content, .container, .container-fluid {
+			background: #fff !important;
+			color: #212529 !important;
+		}
+		.card, .modal-content, .list-group-item, .card-devis {
+			background: #fff !important;
+			color: #212529 !important;
+			border-color: #dee2e6 !important;
+		}
+		.form-control, .form-select {
+			background: #fff !important;
+			color: #212529 !important;
+			border-color: #ced4da !important;
+		}
+		.sidebar {
+			background: #343a40 !important;
+			color: #fff !important;
+		}
+		.sidebar a {
+			color: #fff !important;
+		}
+		@media print {
+			html, body, .content, .container, .card, .modal-content, .card-devis {
+				background: #fff !important;
+				color: #000 !important;
+				-webkit-print-color-adjust: exact;
+				print-color-adjust: exact;
+			}
+		}
+	</style>
+	
 	<style>
 		body {
 			font-family: Arial, Helvetica, sans-serif;
-			background: #f7fafd;
+			background: var(--bg-color);
 			margin: 0;
 			padding: 0;
-			color: #222;
+			color: var(--text-color);
 		}
 		.container {
 			max-width: 480px;
 			margin: 0 auto;
-			background: #fff;
+			background: var(--card-bg);
 			border-radius: 12px;
-			box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+			box-shadow: 0 2px 8px var(--shadow);
 			padding: 18px 12px 24px 12px;
 			margin-top: 18px;
 		}
@@ -31,7 +85,7 @@
 		.section {
 			margin-bottom: 18px;
 			padding: 12px 10px;
-			background: #f0f4f8;
+			background: var(--bg-color);
 			border-radius: 8px;
 		}
 		.section-title {
@@ -47,7 +101,7 @@
 		}
 		.label {
 			font-weight: 500;
-			color: #555;
+			color: var(--text-muted);
 		}
 		.value {
 			font-weight: 600;
@@ -68,8 +122,66 @@
 			}
 		}
 	</style>
+	
+	<!-- Theme Toggle JS - Inline -->
+	<script>
+		(function() {
+			'use strict';
+			const ThemeManager = {
+				STORAGE_KEY: 'theme-preference',
+				THEME_DARK: 'dark',
+				THEME_LIGHT: 'light',
+				getPreferredTheme() {
+					const storedTheme = localStorage.getItem(this.STORAGE_KEY);
+					if (storedTheme) return storedTheme;
+					return window.matchMedia('(prefers-color-scheme: dark)').matches ? this.THEME_DARK : this.THEME_LIGHT;
+				},
+				setTheme(theme) {
+					document.documentElement.setAttribute('data-theme', theme);
+					localStorage.setItem(this.STORAGE_KEY, theme);
+					this.updateIcon(theme);
+				},
+				updateIcon(theme) {
+					const toggleBtn = document.getElementById('theme-toggle');
+					if (!toggleBtn) return;
+					const icon = toggleBtn.querySelector('i');
+					if (!icon) return;
+					if (theme === this.THEME_DARK) {
+						icon.className = 'bi bi-sun-fill';
+						toggleBtn.setAttribute('aria-label', 'Passer au thème clair');
+					} else {
+						icon.className = 'bi bi-moon-fill';
+						toggleBtn.setAttribute('aria-label', 'Passer au thème sombre');
+					}
+				},
+				toggleTheme() {
+					const currentTheme = document.documentElement.getAttribute('data-theme') || this.getPreferredTheme();
+					const newTheme = currentTheme === this.THEME_DARK ? this.THEME_LIGHT : this.THEME_DARK;
+					this.setTheme(newTheme);
+				},
+				init() {
+					const theme = this.getPreferredTheme();
+					this.setTheme(theme);
+					const toggleBtn = document.getElementById('theme-toggle');
+					if (toggleBtn) {
+						toggleBtn.addEventListener('click', () => this.toggleTheme());
+					}
+				}
+			};
+			if (document.readyState === 'loading') {
+				document.addEventListener('DOMContentLoaded', () => ThemeManager.init());
+			} else {
+				ThemeManager.init();
+			}
+		})();
+	</script>
 </head>
 <body>
+	<!-- Theme Toggle Button -->
+	<button id="theme-toggle" class="theme-toggle" aria-label="Changer de thème">
+		<i class="bi bi-moon-fill"></i>
+	</button>
+	
 	<div class="container">
 		<h1>Facture - {{ devis.numero_devis }}</h1>
 		<div class="section">

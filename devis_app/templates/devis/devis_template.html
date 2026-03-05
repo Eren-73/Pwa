@@ -1,4 +1,4 @@
-{% load static %}
+﻿{% load static %}
 
 <!DOCTYPE html>
 <html lang="fr">
@@ -6,17 +6,56 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Proposition commerciale - Proforma</title>
+    
+    <!-- Apply theme immediately to prevent flash -->
+    <script>
+        (function() {
+            const theme = localStorage.getItem('theme-preference') || 
+                (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+            document.documentElement.setAttribute('data-theme', theme);
+        })();
+    </script>
 
     <!-- Bootstrap pour dropdown Exporter -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    
+    <!-- Theme CSS -->
+    <link href="{% static 'css/theme.css' %}?v=5" rel="stylesheet">
+    
     <style>
-        @page { size: A4; margin: 10mm; }
+        @page { size: A4; margin: 0; }
+        
+        /* Print styles */
+        @media print {
+            html, body {
+                background: #fff !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                overflow: visible !important;
+            }
+            .page {
+                background: #fff !important;
+                min-height: auto !important;
+                max-height: none !important;
+                width: 210mm !important;
+                margin: 0 auto !important;
+                padding: 6mm !important;
+                box-shadow: none !important;
+                box-sizing: border-box !important;
+                zoom: 0.92;
+            }
+            #theme-toggle {
+                display: none !important;
+            }
+        }
+        
         body {
             font-family: Arial, Helvetica, sans-serif;
             font-size: 11px;
-            color: #000;
+            color: var(--text-color);
             margin: 0;
-            background: #fff;
+            background: var(--bg-color);
         }
         .page {
             width: 210mm;
@@ -24,6 +63,7 @@
             margin: 0 auto;
             padding: 5mm 10mm;
             box-sizing: border-box;
+            background: var(--card-bg);
         }
         .top-buttons {
             display: flex;
@@ -36,19 +76,20 @@
             font-size: 13px;
             cursor: pointer;
             border-radius: 5px;
-            border: 1px solid #000;
-            background-color: #f0f0f0;
+            border: 1px solid var(--border-color);
+            background-color: var(--input-bg);
+            color: var(--text-color);
             font-weight: bold;
             transition: 0.2s;
         }
         .top-buttons button:hover, .top-buttons .dropdown-toggle:hover {
-            background-color: #dcdcdc;
+            background-color: var(--bg-color);
         }
         .header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 4px solid #000;
+            border-bottom: 4px solid var(--text-color);
             padding-bottom: 8px;
             margin-bottom: 4px;
         }
@@ -65,8 +106,8 @@
         }
         .doc-info {
             margin-top: 6px;
-            background: #000;
-            color: #fff;
+            background: var(--text-color);
+            color: var(--card-bg);
             display: grid;
             grid-template-columns: 1fr 1fr;
             padding: 8px 14px;
@@ -82,12 +123,12 @@
             justify-content: space-between;
         }
         .box {
-            border: 1px solid #000;
+            border: 1px solid var(--border-color);
             padding: 6px;
             height: 105px;
             flex: 1;
             line-height: 1.1;
-            background-color: #fff;
+            background-color: var(--card-bg);
             max-width: calc(40% - 10px);
             box-sizing: border-box;
             font-size: 10px;
@@ -164,6 +205,7 @@
             .page {
                 padding: 10mm;
                 margin: 0 auto;
+                min-height: auto !important;
             }
             /* Forcer l'impression des couleurs de fond */
             * {
@@ -216,8 +258,8 @@
         }
         .doc-info {
             margin-top: 10px;
-            background: #000;
-            color: #fff;
+            background: var(--text-color);
+            color: var(--card-bg);
             display: grid;
             grid-template-columns: 1fr 1fr;
             padding: 10px 14px;
@@ -238,7 +280,7 @@
             height: 120px;
             flex: 1;
             line-height: 1.2;
-            background-color: #fff;
+            background-color: var(--card-bg);
             max-width: calc(40% - 10px);
             box-sizing: border-box;
             font-size: 10px;
@@ -301,7 +343,7 @@
             display: flex;
             justify-content: space-between;
             margin-top: 10px;
-            background-color: #f0f0f0;
+            background-color: var(--bg-color);
             padding: 8px 14px;
         }
         .info-block p {
@@ -312,8 +354,65 @@
 
 
     </style>
+    
+    <!-- Theme Toggle JS - Inline -->
+    <script>
+        (function() {
+            'use strict';
+            const ThemeManager = {
+                STORAGE_KEY: 'theme-preference',
+                THEME_DARK: 'dark',
+                THEME_LIGHT: 'light',
+                getPreferredTheme() {
+                    const storedTheme = localStorage.getItem(this.STORAGE_KEY);
+                    if (storedTheme) return storedTheme;
+                    return window.matchMedia('(prefers-color-scheme: dark)').matches ? this.THEME_DARK : this.THEME_LIGHT;
+                },
+                setTheme(theme) {
+                    document.documentElement.setAttribute('data-theme', theme);
+                    localStorage.setItem(this.STORAGE_KEY, theme);
+                    this.updateIcon(theme);
+                },
+                updateIcon(theme) {
+                    const toggleBtn = document.getElementById('theme-toggle');
+                    if (!toggleBtn) return;
+                    const icon = toggleBtn.querySelector('i');
+                    if (!icon) return;
+                    if (theme === this.THEME_DARK) {
+                        icon.className = 'bi bi-sun-fill';
+                        toggleBtn.setAttribute('aria-label', 'Passer au thème clair');
+                    } else {
+                        icon.className = 'bi bi-moon-fill';
+                        toggleBtn.setAttribute('aria-label', 'Passer au thème sombre');
+                    }
+                },
+                toggleTheme() {
+                    const currentTheme = document.documentElement.getAttribute('data-theme') || this.getPreferredTheme();
+                    const newTheme = currentTheme === this.THEME_DARK ? this.THEME_LIGHT : this.THEME_DARK;
+                    this.setTheme(newTheme);
+                },
+                init() {
+                    const theme = this.getPreferredTheme();
+                    this.setTheme(theme);
+                    const toggleBtn = document.getElementById('theme-toggle');
+                    if (toggleBtn) {
+                        toggleBtn.addEventListener('click', () => this.toggleTheme());
+                    }
+                }
+            };
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', () => ThemeManager.init());
+            } else {
+                ThemeManager.init();
+            }
+        })();
+    </script>
 </head>
 <body>
+    <!-- Theme Toggle Button -->
+    <button id="theme-toggle" class="theme-toggle no-print" aria-label="Changer de thème">
+        <i class="bi bi-moon-fill"></i>
+    </button>
 
 
         <!-- Affichage des messages Django -->
@@ -329,10 +428,13 @@
 
         <div class="page">
 
-        <!-- Boutons Retour, Imprimer et Exporter -->
+        <!-- Boutons Retour, Imprimer et Exporter (masqués dans le PDF) -->
+        {% if not is_pdf %}
         <div class="top-buttons">
             <button onclick="window.history.back()">⬅ Retour</button>
             <button onclick="window.print()">🖨 Imprimer</button>
+            <a href="{% url 'modifier_devis_v2' devis.slug %}" class="btn" style="padding: 6px 14px; font-size: 13px; text-decoration: none; display: inline-block;">✏️ Modifier</a>
+            <a href="{% url 'historique_devis' devis.slug %}" class="btn" style="padding: 6px 14px; font-size: 13px; text-decoration: none; display: inline-block;">📜 Historique</a>
 
             <!-- Dropdown Exporter -->
             <div class="dropdown">
@@ -345,7 +447,44 @@
                     <li><a class="dropdown-item" href="{% url 'export_devis_excel' devis.slug %}">Excel</a></li>
                 </ul>
             </div>
+
+            <!-- Dropdown Partager -->
+            <div class="dropdown">
+                <button class="dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    📤 Partager
+                </button>
+                <ul class="dropdown-menu">
+                    <li>
+                        {% if devis.client and devis.client.email %}
+                            <a class="dropdown-item" href="{% url 'envoyer_devis_par_email' devis.slug %}">
+                                📧 Envoyer par Email ({{ devis.client.email }})
+                            </a>
+                        {% else %}
+                            <a class="dropdown-item" href="#" onclick="alert('Le client n\'a pas d\'adresse email.'); return false;">
+                                📧 Email (Aucun email client)
+                            </a>
+                        {% endif %}
+                    </li>
+                    <li>
+                        {% if devis.client and devis.client.telephone %}
+                            <a class="dropdown-item" href="https://wa.me/{{ devis.client.telephone|cut:' '|cut:'-'|cut:'+' }}?text=Bonjour%20{{ devis.client.prenom }}%20{{ devis.client.nom }},%20voici%20votre%20devis%20N°%20{{ devis.numero_devis }}%20d'un%20montant%20de%20{{ devis.total_ttc }}%20CFA.%20Vous%20pouvez%20le%20consulter%20via%20ce%20lien:%20{{ request.build_absolute_uri }}" target="_blank">
+                                💬 WhatsApp ({{ devis.client.telephone }})
+                            </a>
+                        {% else %}
+                            <a class="dropdown-item" href="https://wa.me/?text=Bonjour,%20voici%20le%20devis%20N°%20{{ devis.numero_devis }}%20d'un%20montant%20de%20{{ devis.total_ttc }}%20CFA.%20Lien:%20{{ request.build_absolute_uri }}" target="_blank">
+                                💬 WhatsApp
+                            </a>
+                        {% endif %}
+                    </li>
+                    <li>
+                        <a class="dropdown-item" href="#" onclick="navigator.clipboard.writeText('{{ request.build_absolute_uri }}'); alert('Lien copié dans le presse-papier!'); return false;">
+                            📋 Copier le lien
+                        </a>
+                    </li>
+                </ul>
+            </div>
         </div>
+        {% endif %}
 
         <!-- Header -->
         <div class="header">
@@ -487,7 +626,7 @@
         </table>
 
         <!-- Add extra space between totals and the next block -->
-        <div style="clear: both; height: 30px;"></div>
+        <div style="clear: both; height: 8px;"></div>
 
         <p style="margin-top:0; text-align:left; font-weight:bold;">
             ARRÊTÉE LA PRÉSENTE PROFORMA A LA SOMME DE
@@ -511,16 +650,21 @@
 
 
 
-        <div style="text-align: right; margin-top: 30px;">
+        <div style="text-align: right; margin-top: 10px;">
             <p><strong>Responsable Commercial</strong></p>
-            {% if devis.utilisateur %}
+            {% if devis.nom_responsable %}
+                <p>{{ devis.nom_responsable }}</p>
+            {% elif devis.utilisateur %}
                 <p>{{ devis.utilisateur.get_full_name }}</p>
             {% endif %}
             <br />
             <p><strong>Signature et cachet</strong></p>
+            {% if devis.signature_electronique %}
+                <img src="{{ devis.signature_electronique.url }}" alt="Signature" style="max-width: 200px; max-height: 100px; margin-top: 5px;">
+            {% endif %}
         </div>
 
-        <hr style="border: 1px solid black; margin: 30px 0 0 0;" />
+        <hr style="border: 1px solid black; margin: 1px 0 0 0;" />
 
         <div class="footer" style="margin-top:0; font-size:11px; text-align:center; line-height:1.5;">
             Siège Social: Les Rosiers, Cocoteraie 3 Villa N°547 – Grand-Bassam – Cote d’Ivoire | Contact : +225 27

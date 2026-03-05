@@ -13,6 +13,19 @@ from django.db import models
 from django.contrib.auth.models import User
 
 
+class ResponsableCommercial(models.Model):
+    """Responsable commercial ajouté par l'admin."""
+    nom = models.CharField(max_length=255, verbose_name="Nom complet")
+
+    class Meta:
+        verbose_name = "Responsable Commercial"
+        verbose_name_plural = "Responsables Commerciaux"
+        ordering = ['nom']
+
+    def __str__(self):
+        return self.nom
+
+
 class PointVente(models.Model):
     numero = models.CharField(max_length=50, unique=True, blank=True, null=True, verbose_name="Numéro du point de vente")
     nom = models.CharField(max_length=100)
@@ -132,6 +145,10 @@ class Devis(models.Model):
     pourcentage_acompte = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal('60.00'), verbose_name="Pourcentage d'acompte")
     pourcentage_livraison = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal('40.00'), verbose_name="Pourcentage à la livraison")
     
+    # Champs pour signature et responsable
+    signature_electronique = models.ImageField(upload_to='signatures/', blank=True, null=True, verbose_name="Signature électronique")
+    nom_responsable = models.CharField(max_length=255, blank=True, null=True, verbose_name="Nom du responsable commercial")
+    
     def save(self, *args, **kwargs):
         # --- Génération numéro devis (inchangé) ---
         if not self.numero_devis:
@@ -248,3 +265,25 @@ class ActionCommercial(models.Model):
         verbose_name = "Action du commercial"
         verbose_name_plural = "Actions des commerciaux"
         ordering = ['-date_action']
+
+
+class HistoriqueDevis(models.Model):
+    """Historique des modifications d'un devis"""
+    devis = models.ForeignKey(Devis, on_delete=models.CASCADE, related_name='historique')
+    utilisateur = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    date_modification = models.DateTimeField(auto_now_add=True)
+    action = models.CharField(max_length=50, choices=[
+        ('creation', 'Création'),
+        ('modification', 'Modification'),
+    ])
+    # Sauvegarde de l'état avant modification (JSON)
+    donnees_avant = models.JSONField(null=True, blank=True)
+    commentaire = models.TextField(blank=True, null=True)
+    
+    def __str__(self):
+        return f"{self.devis.numero_devis} - {self.action} le {self.date_modification.strftime('%d/%m/%Y %H:%M')}"
+    
+    class Meta:
+        verbose_name = "Historique de devis"
+        verbose_name_plural = "Historiques des devis"
+        ordering = ['-date_modification']

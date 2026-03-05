@@ -17,7 +17,7 @@
     .card {
         border: none;
         border-radius: 1.2rem;
-        background: #fff;
+        background: var(--card-bg);
         box-shadow: 0 8px 20px rgba(0,0,0,0.05);
         transition: all 0.3s ease;
     }
@@ -44,7 +44,7 @@
         margin-bottom: 1rem;
         padding: 1rem;
         border-radius: 0.75rem;
-        background: #fff;
+        background: var(--card-bg);
     }
     #formset-area {
         max-height: 400px;
@@ -55,11 +55,16 @@
 
 <div class="container my-5">
     <div class="text-center mb-5">
-        <h2 class="page-title">Création d’un devis</h2>
-        <p class="page-subtitle">Remplissez les informations du client et ajoutez vos produits</p>
+        {% if mode_modification %}
+            <h2 class="page-title">Modification du devis</h2>
+            <p class="page-subtitle">Numéro: {{ devis.numero_devis }} | Modifiez les informations nécessaires</p>
+        {% else %}
+            <h2 class="page-title">Création d'un devis</h2>
+            <p class="page-subtitle">Remplissez les informations du client et ajoutez vos produits</p>
+        {% endif %}
     </div>
 
-    <form method="post">
+    <form method="post" enctype="multipart/form-data">
         {% csrf_token %}
 
         {# Afficher les erreurs de formulaire globales #}
@@ -134,7 +139,12 @@
 
         <div class="text-center mb-5">
             <button type="submit" class="btn btn-primary btn-lg px-5 shadow-sm">
-                <i class="bi bi-save2"></i> Enregistrer le devis
+                <i class="bi bi-save2"></i> 
+                {% if mode_modification %}
+                    Enregistrer les modifications
+                {% else %}
+                    Enregistrer le devis
+                {% endif %}
             </button>
         </div>
     </form>
@@ -233,4 +243,5 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 });
 </script>
+
 {% endblock %}

@@ -1,10 +1,20 @@
 from django import forms
-from .models import Devis, LigneDevis,Client,Produit,Categorie
+from django.contrib.auth.models import User
+from .models import Devis, LigneDevis, Client, Produit, Categorie, ResponsableCommercial
+
+
+def get_responsables_choices():
+    """Retourne les responsables commerciaux définis par l'admin."""
+    choices = [('', '--- Sélectionner un responsable ---')]
+    for r in ResponsableCommercial.objects.all():
+        choices.append((r.nom, r.nom))
+    return choices
+
 
 class DevisForm(forms.ModelForm):
     class Meta:
         model = Devis
-        fields = ['client', 'point_vente', 'regime_vente', 'detail_proposition', 'date_proforma', 'date_validite', 'pourcentage_acompte', 'pourcentage_livraison']
+        fields = ['client', 'point_vente', 'regime_vente', 'detail_proposition', 'date_proforma', 'date_validite', 'pourcentage_acompte', 'pourcentage_livraison', 'signature_electronique', 'nom_responsable']
         widgets = {
             'client': forms.Select(attrs={'class': 'form-select'}),
             'point_vente': forms.Select(attrs={'class': 'form-select'}),
@@ -14,7 +24,14 @@ class DevisForm(forms.ModelForm):
             'date_validite': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'pourcentage_acompte': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0', 'max': '100'}),
             'pourcentage_livraison': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0', 'max': '100'}),
+            'signature_electronique': forms.FileInput(attrs={'class': 'form-control', 'accept': 'image/*'}),
+            'nom_responsable': forms.Select(attrs={'class': 'form-select'}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Peuple le dropdown avec les utilisateurs actifs à chaque instanciation
+        self.fields['nom_responsable'].widget.choices = get_responsables_choices()
 
 class LigneDevisForm(forms.ModelForm):
     class Meta:

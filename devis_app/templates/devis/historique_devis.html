@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+
+{% block title %}Historique du devis {{ devis.numero_devis }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="mb-0">📜 Historique du devis n° {{ devis.numero_devis }}</h1>
+        <a href="{% url 'devis_template' devis.slug %}" class="btn btn-secondary">⬅ Retour au devis</a>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-header bg-info text-white">
+            <h5 class="mb-0">Informations actuelles</h5>
+        </div>
+        <div class="card-body">
+            <p><strong>Client :</strong> {{ devis.client }}</p>
+            <p><strong>Date d'émission :</strong> {{ devis.date_emission|date:"d/m/Y" }}</p>
+            <p><strong>Total TTC :</strong> {{ devis.total_ttc }} DH</p>
+        </div>
+    </div>
+
+    <h3 class="mb-3">Historique des modifications</h3>
+
+    {% if historique %}
+    <div class="timeline">
+        {% for entry in historique %}
+        <div class="card mb-3 shadow-sm">
+            <div class="card-header {% if entry.action == 'creation' %}bg-success{% else %}bg-warning{% endif %} text-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        {% if entry.action == 'creation' %}
+                            ✨ Création
+                        {% else %}
+                            ✏️ Modification
+                        {% endif %}
+                    </h5>
+                    <span class="badge bg-light text-dark">{{ entry.date_modification|date:"d/m/Y à H:i" }}</span>
+                </div>
+            </div>
+            <div class="card-body">
+                <p class="mb-2">
+                    <strong>Par :</strong> 
+                    {% if entry.utilisateur %}
+                        {{ entry.utilisateur.get_full_name|default:entry.utilisateur.username }}
+                    {% else %}
+                        Système
+                    {% endif %}
+                </p>
+                
+                {% if entry.commentaire %}
+                <p class="mb-2"><strong>Commentaire :</strong> {{ entry.commentaire }}</p>
+                {% endif %}
+                
+                {% if entry.donnees_avant %}
+                <hr>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        {% if entry.donnees_avant.client %}
+                        <p><strong>Client:</strong> {{ entry.donnees_avant.client }}</p>
+                        {% endif %}
+                        {% if entry.donnees_avant.date_emission %}
+                        <p><strong>Date d'émission:</strong> {{ entry.donnees_avant.date_emission }}</p>
+                        {% endif %}
+                        {% if entry.donnees_avant.date_validite %}
+                        <p><strong>Date de validité:</strong> {{ entry.donnees_avant.date_validite }}</p>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6 text-end">
+                        {% if entry.donnees_avant.total_ht %}
+                        <p><strong>Total HT:</strong> {{ entry.donnees_avant.total_ht|floatformat:2 }} DH</p>
+                        {% endif %}
+                        {% if entry.donnees_avant.total_tva %}
+                        <p><strong>TVA:</strong> {{ entry.donnees_avant.total_tva|floatformat:2 }} DH</p>
+                        {% endif %}
+                        {% if entry.donnees_avant.total_ttc %}
+                        <p><strong>Total TTC:</strong> {{ entry.donnees_avant.total_ttc|floatformat:2 }} DH</p>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                {% if entry.donnees_avant.lignes %}
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Produit</th>
+                                <th class="text-center">Quantité</th>
+                                <th class="text-end">PU (DH)</th>
+                                <th class="text-end">Remise %</th>
+                                <th class="text-end">Total HT (DH)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for ligne in entry.donnees_avant.lignes %}
+                            <tr>
+                                <td>{{ ligne.produit }}</td>
+                                <td class="text-center">{{ ligne.quantite }}</td>
+                                <td class="text-end">{{ ligne.pu|floatformat:2 }}</td>
+                                <td class="text-end">{{ ligne.remise|floatformat:2 }}</td>
+                                <td class="text-end">{{ ligne.total_ht|floatformat:2 }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="text-end mt-3">
+                    <a href="{% url 'voir_version_historique' entry.id %}" class="btn btn-primary btn-sm">
+                        <i class="bi bi-file-text"></i> Voir cette version comme facture
+                    </a>
+                </div>
+                {% endif %}
+                
+                <div class="text-end mt-3">
+                    <a href="{% url 'voir_version_historique' entry.id %}" class="btn btn-primary btn-sm">
+                        <i class="bi bi-file-text"></i> Voir cette version comme facture
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle"></i> Aucune modification enregistrée pour ce devis.
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.timeline {
+    position: relative;
+}
+.card {
+    border-radius: 10px;
+    transition: transform 0.2s;
+}
+.card:hover {
+    transform: translateY(-2px);
+}
+.badge {
+    font-size: 0.85rem;
+}
+</style>
+{% endblock %}

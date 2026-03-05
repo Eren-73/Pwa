@@ -1,10 +1,16 @@
 from django.urls import path,include 
 from . import views
+from . import views_theme  # Import pour theme toggle
 from django.contrib.auth import views as auth_views  # 🔹 Import correct de Django
 
 urlpatterns = [
+    # ---- Theme Toggle (HTMX) ----
+    path('api/theme/toggle/', views_theme.toggle_theme, name='toggle_theme'),
+    path('api/theme/get/', views_theme.get_theme, name='get_theme'),
+    
     path('', views.dashboard, name='dashboard'),
     path('creer/', views.creer_devis, name='creer_devis'),
+    path('creer/<slug:slug>/', views.creer_devis, name='modifier_devis_v2'),  # Nouvelle route pour modification
     path('facture/<slug:slug>/', views.devis_template , name='devis_template'),
 
     # ---- Clients ----
@@ -17,6 +23,13 @@ urlpatterns = [
     # ---- Devis ----
     path("devis/supprimer-selection/", views.supprimer_devis_selectionnes, name="supprimer_devis_selectionnes"),  # ⚠️ placé avant <slug>
     path("devis/<slug:slug>/", views.detail_devis, name="detail_devis"),
+    path("devis/<slug:slug>/modifier/", views.modifier_devis, name="modifier_devis"),
+    path("devis/<slug:slug>/historique/", views.historique_devis, name="historique_devis"),
+    path('historique/<int:historique_id>/voir/', views.voir_version_historique, name='voir_version_historique'),
+    path("devis/<slug:slug>/export/pdf/", views.export_pdf, name="export_pdf"),
+    path("devis/<slug:slug>/envoyer-email/", views.envoyer_devis_par_email, name="envoyer_devis_par_email"),
+    path('devis/<slug:slug>/export/word/', views.export_devis_word, name='export_devis_word'),
+    path('devis/<slug:slug>/export/excel/', views.export_devis_excel, name='export_devis_excel'),
 
     # ---- Matériels & Produits ----
     path('materiels/', views.liste_materiels, name='liste_materiels'),
@@ -27,22 +40,21 @@ urlpatterns = [
     # ---- Catégories ----
     path('categorie/ajouter/', views.ajouter_categorie, name='ajouter_categorie'),
 
-     # ---- Import ----
-    path("clients/<slug:slug>/export/pdf/", views.export_pdf, name="export_pdf"),
-    path('devis/<slug:slug>/export/word/', views.export_devis_word, name='export_devis_word'),
-    path('devis/<slug:slug>/export/excel/', views.export_devis_excel, name='export_devis_excel'),
-
-
     #---Authentification---#
-    path('login/', auth_views.LoginView.as_view(
-        template_name='Authentification/login.html',
-        redirect_authenticated_user=True
-    ), name='login'),
-    
-    path('logout/', auth_views.LogoutView.as_view(
-        next_page='login'
-    ), name='logout'),
+    path('login/', views.custom_login, name='login'),
+    path('logout/', auth_views.LogoutView.as_view(next_page='login'), name='logout'),
 
+    #---Portail Client---#
+    path('client/<slug:client_slug>/factures/', views.client_factures, name='client_factures'),
+
+    #---API---#
+    path('api/responsables/', views.responsables_suggestions, name='responsables_suggestions'),
+
+
+    # Responsables Commerciaux
+    path('responsables/', views.liste_responsables, name='liste_responsables'),
+    path('responsables/ajouter/', views.ajouter_responsable, name='ajouter_responsable'),
+    path('responsables/supprimer/<int:pk>/', views.supprimer_responsable, name='supprimer_responsable'),
 
     #---DASHBOARD---#
     path('admin-dashboard/', views.admin_dashboard, name='admin_dashboard'),
