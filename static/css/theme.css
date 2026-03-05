@@ -1,0 +1,239 @@
+/* d:\Freelance\Python_Dev\Pwa\static\css\theme.css
+ * CSS variables for light/dark theme implementation
+ * Provides theme switching capability with localStorage persistence
+ * RELEVANT FILES: static/js/theme-toggle.js, devis_app/templates/base.html
+ */
+
+/* ========== CSS VARIABLES ========== */
+
+/* Light Theme (Default) */
+:root {
+    --bg-color: #f8f9fa;
+    --bg-secondary: #ffffff;
+    --text-color: #212529;
+    --text-muted: #6c757d;
+    --border-color: #dee2e6;
+    --sidebar-bg: #343a40;
+    --sidebar-text: #ffffff;
+    --sidebar-hover: #495057;
+    --card-bg: #ffffff;
+    --input-bg: #ffffff;
+    --input-border: #ced4da;
+    --shadow: rgba(0, 0, 0, 0.1);
+    --table-border: #dee2e6;
+    --table-hover: rgba(0, 0, 0, 0.075);
+}
+
+/* Dark Theme */
+[data-theme="dark"] {
+    --bg-color: #1a1a1a;
+    --bg-secondary: #2d2d2d;
+    --text-color: #e9ecef;
+    --text-muted: #adb5bd;
+    --border-color: #495057;
+    --sidebar-bg: #0d0d0d;
+    --sidebar-text: #e9ecef;
+    --sidebar-hover: #343a40;
+    --card-bg: #2d2d2d;
+    --input-bg: #343a40;
+    --input-border: #495057;
+    --shadow: rgba(0, 0, 0, 0.3);
+    --table-border: #495057;
+    --table-hover: rgba(255, 255, 255, 0.075);
+}
+
+/* ========== GLOBAL STYLES ========== */
+
+body,
+html {
+    background-color: var(--bg-color) !important;
+    color: var(--text-color) !important;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* ========== LAYOUT ========== */
+
+.content,
+.container,
+.container-fluid {
+    background-color: var(--bg-color) !important;
+    color: var(--text-color) !important;
+}
+
+/* ========== SIDEBAR ========== */
+
+.sidebar {
+    background-color: var(--sidebar-bg) !important;
+    color: var(--sidebar-text) !important;
+}
+
+.sidebar a {
+    color: var(--sidebar-text) !important;
+}
+
+.sidebar a:hover {
+    background-color: var(--sidebar-hover) !important;
+}
+
+/* ========== CARDS & CONTAINERS ========== */
+
+.card,
+.card-devis,
+.list-group-item,
+.modal-content {
+    background-color: var(--card-bg) !important;
+    color: var(--text-color) !important;
+    border-color: var(--border-color) !important;
+}
+
+/* ========== FORMS ========== */
+
+.form-control,
+.form-select,
+.form-control:focus,
+.form-select:focus {
+    background-color: var(--input-bg) !important;
+    color: var(--text-color) !important;
+    border-color: var(--input-border) !important;
+}
+
+/* Tables */
+.table {
+    color: var(--text-color) !important;
+    border-color: var(--table-border) !important;
+}
+
+.table thead {
+    border-color: var(--table-border) !important;
+}
+
+.table-striped > tbody > tr:nth-of-type(odd) > * {
+    --bs-table-accent-bg: var(--bg-secondary);
+    color: var(--text-color);
+}
+
+.table-hover > tbody > tr:hover > * {
+    --bs-table-accent-bg: var(--table-hover);
+    color: var(--text-color);
+}
+
+/* Modals */
+.modal-content {
+    background-color: var(--card-bg) !important;
+    color: var(--text-color) !important;
+    border-color: var(--border-color) !important;
+}
+
+.modal-header,
+.modal-footer {
+    border-color: var(--border-color) !important;
+}
+
+/* Dropdown menus */
+.dropdown-menu {
+    background-color: var(--card-bg) !important;
+    border-color: var(--border-color) !important;
+}
+
+.dropdown-item {
+    color: var(--text-color) !important;
+}
+
+.dropdown-item:hover {
+    background-color: var(--bg-color) !important;
+}
+
+/* Text colors */
+.text-muted {
+    color: var(--text-muted) !important;
+}
+
+/* Mobile menu */
+.mobile-sidebar {
+    background-color: var(--card-bg) !important;
+    color: var(--text-color) !important;
+}
+
+.mobile-sidebar a {
+    color: var(--text-color) !important;
+}
+
+/* Lists */
+.list-group-item {
+    background-color: var(--card-bg) !important;
+    color: var(--text-color) !important;
+    border-color: var(--border-color) !important;
+}
+
+/* Theme toggle button styles */
+.theme-toggle {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1050;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    border: 2px solid var(--border-color);
+    background-color: var(--card-bg);
+    color: var(--text-color);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    box-shadow: 0 2px 8px var(--shadow);
+}
+
+.theme-toggle:hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px var(--shadow);
+}
+
+/* Animation for theme icon */
+.theme-toggle i {
+    transition: transform 0.3s ease;
+}
+
+.theme-toggle:hover i {
+    transform: rotate(20deg);
+}
+
+/* Mobile adjustments for theme toggle */
+@media (max-width: 768px) {
+    .theme-toggle {
+        width: 45px;
+        height: 45px;
+        font-size: 1.2rem;
+        top: 15px;
+        right: 70px;
+    }
+}
+
+/* ========== OVERRIDE BOOTSTRAP UTILITIES ========== */
+
+[data-theme="dark"] .bg-white {
+    background-color: var(--card-bg) !important;
+}
+
+[data-theme="dark"] .bg-light {
+    background-color: var(--bg-secondary) !important;
+}
+
+[data-theme="dark"] .text-dark {
+    color: var(--text-color) !important;
+}
+
+[data-theme="dark"] .border {
+    border-color: var(--border-color) !important;
+}
+
+/* ========== PRINT SUPPORT ========== */
+
+@media print {
+    body,
+    .card,
+    .container {
+        background-color: white !important;
+        color: black !important;
