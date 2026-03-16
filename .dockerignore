@@ -1,0 +1,18 @@
+# d:\Freelance\Python_Dev\Pwa\.dockerignore
+# Exclut les fichiers inutiles du contexte de build Docker.
+# Réduit le temps de build et évite d'embarquer des données locales.
+# RELEVANT FILES:Dockerfile, docker-compose.yml, .gitignore
+
+.git
+.github
+env
+venv
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+*.sqlite3
+db.sqlite3
+media
+staticfiles
+*.log

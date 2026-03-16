@@ -12,30 +12,44 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 import os
+from django.core.exceptions import ImproperlyConfigured
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+
+def _split_csv_env(name, default_list):
+    value = os.getenv(name)
+    if not value:
+        return default_list
+    return [item.strip() for item in value.split(',') if item.strip()]
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-bm-^&9^9a&xauc!w4+2*v&*2f#@0m_4m=krli61q3)k$tzu4b9'
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'django-insecure-bm-^&9^9a&xauc!w4+2*v&*2f#@0m_4m=krli61q3)k$tzu4b9')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DJANGO_DEBUG', 'True').lower() == 'true'
 
-ALLOWED_HOSTS = ['192.168.1.68', 'localhost', '127.0.0.1','192.168.1.76','192.168.1.178','192.168.1.71']
+ALLOWED_HOSTS = _split_csv_env(
+    'DJANGO_ALLOWED_HOSTS',
+    ['192.168.1.68', 'localhost', '127.0.0.1', '192.168.1.76', '192.168.1.178', '192.168.1.71']
+)
 
-CSRF_TRUSTED_ORIGINS = [
-    'http://localhost:8000',
-    'http://127.0.0.1:8000',
-    'http://127.0.0.1:62539',
-    'http://192.168.1.68:8000',
-    'http://192.168.1.76:8000',
-    'http://192.168.1.178:8000',
-    'http://192.168.1.71:8000',
-]
+CSRF_TRUSTED_ORIGINS = _split_csv_env(
+    'DJANGO_CSRF_TRUSTED_ORIGINS',
+    [
+        'http://localhost:8000',
+        'http://127.0.0.1:8000',
+        'http://127.0.0.1:62539',
+        'http://192.168.1.68:8000',
+        'http://192.168.1.76:8000',
+        'http://192.168.1.178:8000',
+        'http://192.168.1.71:8000',
+    ]
+)
 
 
 
@@ -52,8 +66,10 @@ INSTALLED_APPS = [
     'widget_tweaks',
     "django_extensions",
     'devis_app.apps.DevisAppConfig',
-    'django_browser_reload',  # Hot reload pour dev
 ]
+
+if DEBUG:
+    INSTALLED_APPS.append('django_browser_reload')
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -63,8 +79,10 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'django_browser_reload.middleware.BrowserReloadMiddleware',  # Hot reload
 ]
+
+if DEBUG:
+    MIDDLEWARE.append('django_browser_reload.middleware.BrowserReloadMiddleware')
 
 ROOT_URLCONF = 'Devis.urls'
 
@@ -91,12 +109,38 @@ WSGI_APPLICATION = 'Devis.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+POSTGRES_DB = os.getenv('POSTGRES_DB')
+POSTGRES_USER = os.getenv('POSTGRES_USER')
+POSTGRES_PASSWORD = os.getenv('POSTGRES_PASSWORD')
+POSTGRES_HOST = os.getenv('POSTGRES_HOST', 'db')
+POSTGRES_PORT = os.getenv('POSTGRES_PORT', '5432')
+
+# PostgreSQL is mandatory when DEBUG is False.
+REQUIRE_POSTGRES = (not DEBUG) or (os.getenv('DJANGO_REQUIRE_POSTGRES', 'False').lower() == 'true')
+
+if REQUIRE_POSTGRES and not (POSTGRES_DB and POSTGRES_USER and POSTGRES_PASSWORD):
+    raise ImproperlyConfigured(
+        'PostgreSQL is required. Set POSTGRES_DB, POSTGRES_USER and POSTGRES_PASSWORD environment variables.'
+    )
+
+if POSTGRES_DB and POSTGRES_USER and POSTGRES_PASSWORD:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': POSTGRES_DB,
+            'USER': POSTGRES_USER,
+            'PASSWORD': POSTGRES_PASSWORD,
+            'HOST': POSTGRES_HOST,
+            'PORT': POSTGRES_PORT,
+        }
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 
 # Password validation
@@ -145,7 +189,7 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Default primary key field type
 # URL de base pour les QR codes (changez selon votre réseau)
-SITE_URL = "http://192.168.1.71:8000"  # Utilisez votre IP locale pour que ça fonctionne sur mobile
+SITE_URL = os.getenv('SITE_URL', "http://192.168.1.71:8000")  # Utilisez votre IP locale pour que ça fonctionne sur mobile
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
