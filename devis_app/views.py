@@ -322,13 +322,10 @@ def liste_clients(request):
             | Q(email__icontains=query)
             | Q(telephone__icontains=query)
             | Q(devis__numero_devis__icontains=query)
-            | Q(devis__point_vente__nom__icontains=query)
         ).distinct()
 
     for client in clients:
-        client_devis = _scoped_devis_queryset(request.user).filter(client=client).select_related('point_vente')
-        labels = sorted({d.point_vente.nom for d in client_devis if d.point_vente})
-        client.site_labels = labels if labels else ['Non assigné']
+        client_devis = _scoped_devis_queryset(request.user).filter(client=client)
         first_devis = client_devis.first()
         if first_devis and first_devis.utilisateur:
             full_name = first_devis.utilisateur.get_full_name().strip()
