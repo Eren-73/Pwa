@@ -71,9 +71,6 @@
                 <p class="card-text mb-1"><strong>📧 Email:</strong> {{ client.email }}</p>
                 <p class="card-text mb-1"><strong>📞 Téléphone:</strong> {{ client.telephone|default:"Non renseigné" }}</p>
                 <p class="card-text mb-1"><strong>📍 Adresse:</strong> {{ client.adresse|default:"Non renseignée" }}</p>
-                <p class="card-text mb-1"><strong>👤 Conseiller Commercial:</strong> 
-                    {{ client.main_commercial_name }}
-                </p>
                 <p class="text-muted mb-2"><small>Ajouté le {{ client.date_creation|date:"d/m/Y" }}</small></p>
 
                 <div class="d-flex justify-content-end gap-2 actions-cell">

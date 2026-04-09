@@ -324,15 +324,6 @@ def liste_clients(request):
             | Q(devis__numero_devis__icontains=query)
         ).distinct()
 
-    for client in clients:
-        client_devis = _scoped_devis_queryset(request.user).filter(client=client)
-        first_devis = client_devis.first()
-        if first_devis and first_devis.utilisateur:
-            full_name = first_devis.utilisateur.get_full_name().strip()
-            client.main_commercial_name = full_name or first_devis.utilisateur.username
-        else:
-            client.main_commercial_name = 'Non assigné'
-
     return render(request, 'clients/clients.html', {
         'clients': clients,
         'q': query,
