@@ -361,10 +361,13 @@ def modifier_client(request, slug):
         form = ClientForm(request.POST, instance=client)
         if form.is_valid():
             form.save()
+            messages.success(request, "Client modifié avec succès.")
             return redirect('liste_clients')
+        messages.error(request, "Impossible de modifier le client. Vérifie les champs saisis.")
     else:
         form = ClientForm(instance=client)
-        return render(request, 'clients/modifier_client.html', {'form': form, 'client': client})
+
+    return render(request, 'clients/modifier_client.html', {'form': form, 'client': client})
 
 
 @login_required(login_url='login')
