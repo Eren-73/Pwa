@@ -324,6 +324,30 @@ def liste_clients(request):
             | Q(devis__numero_devis__icontains=query)
         ).distinct()
 
+    # Le client n'est pas assigné à un point de vente dans la base.
+    # On l'affiche selon le point de vente du commercial qui l'a enregistré.
+    client_slugs = [client.slug for client in clients if client.slug]
+    slug_set = set(client_slugs)
+    creator_by_slug = {}
+    if slug_set:
+        creation_logs = (
+            ActionCommercial.objects
+            .filter(action__startswith='Création du client ')
+            .select_related('user__profile__point_vente')
+            .order_by('-date_action')
+        )
+        for log in creation_logs:
+            slug = log.action.replace('Création du client ', '', 1).strip()
+            if slug in slug_set and slug not in creator_by_slug:
+                creator_by_slug[slug] = log.user
+
+    for client in clients:
+        creator = creator_by_slug.get(client.slug)
+        if creator and hasattr(creator, 'profile') and creator.profile.point_vente:
+            client.point_vente_label = creator.profile.point_vente.nom
+        else:
+            client.point_vente_label = 'Non assigné'
+
     return render(request, 'clients/clients.html', {
         'clients': clients,
         'q': query,
