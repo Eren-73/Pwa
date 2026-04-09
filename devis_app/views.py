@@ -63,6 +63,32 @@ def _user_point_vente(user):
     return profile.point_vente if profile else None
 
 
+def _get_commercial_contact_for_devis(devis):
+    """Retourne les coordonnées du commercial liées au devis (si disponibles)."""
+    contact = {
+        'nom': 'PWA Energy Solution',
+        'email': '',
+        'telephone': '',
+    }
+
+    user = devis.utilisateur
+    if not user:
+        return contact
+
+    full_name = (user.get_full_name() or user.username or '').strip()
+    if full_name:
+        contact['nom'] = full_name
+
+    contact['email'] = (user.email or '').strip()
+
+    try:
+        contact['telephone'] = (user.profile.telephone or '').strip()
+    except Profile.DoesNotExist:
+        contact['telephone'] = ''
+
+    return contact
+
+
 def _scoped_devis_queryset(user):
     base_qs = Devis.objects.select_related('client', 'point_vente', 'utilisateur', 'utilisateur__profile__point_vente')
     if not user.is_authenticated:
@@ -255,10 +281,12 @@ def creer_devis(request, slug=None):
 def devis_template(request, slug):
     devis = get_object_or_404(Devis, slug=slug)
     lignes = devis.lignes.all()
+    commercial_contact = _get_commercial_contact_for_devis(devis)
 
     return render(request, 'devis/devis_template.html', {
         'devis': devis,
         'lignes': lignes,
+        'commercial_contact': commercial_contact,
         'qr_code_url': request.build_absolute_uri(devis.qr_code.url) if devis.qr_code else None,
     })
 
@@ -417,10 +445,12 @@ def detail_devis(request, slug):
     devis = get_object_or_404(_scoped_devis_queryset(request.user), slug=slug)
     # Récupère les lignes associées au devis pour l'affichage
     lignes = devis.lignes.all()
+    commercial_contact = _get_commercial_contact_for_devis(devis)
 
     return render(request, "devis/devis_template.html", {
         "devis": devis,
-        "lignes": lignes
+        "lignes": lignes,
+        "commercial_contact": commercial_contact,
     })
 
 
@@ -604,6 +634,7 @@ def envoyer_devis_par_email(request, slug):
     """
     devis = get_object_or_404(_scoped_devis_queryset(request.user), slug=slug)
     lignes = devis.lignes.all()
+    commercial_contact = _get_commercial_contact_for_devis(devis)
     
     # Vérifier si le client a un email
     if not devis.client or not devis.client.email:
@@ -614,6 +645,7 @@ def envoyer_devis_par_email(request, slug):
     html_string = render_to_string('devis/devis_template.html', {
         'devis': devis,
         'lignes': lignes,
+        'commercial_contact': commercial_contact,
         'qr_code_url': request.build_absolute_uri(devis.qr_code.url) if devis.qr_code else None,
         'is_pdf': True,
     })
@@ -623,6 +655,13 @@ def envoyer_devis_par_email(request, slug):
     
     # Préparer l'email
     sujet = f"Devis N° {devis.numero_devis} - PWA Energy Solution"
+    contact_lines = []
+    if commercial_contact['telephone']:
+        contact_lines.append(f"- Téléphone commercial: {commercial_contact['telephone']}")
+    if commercial_contact['email']:
+        contact_lines.append(f"- Email commercial: {commercial_contact['email']}")
+    contact_block = "\n".join(contact_lines) if contact_lines else "- Coordonnées commercial non renseignées"
+
     message = f"""Bonjour {devis.client.prenom} {devis.client.nom},
 
 Veuillez trouver ci-joint votre devis N° {devis.numero_devis} d'un montant de {devis.total_ttc} CFA.
@@ -632,10 +671,14 @@ Détails du devis:
 - Date de validité: {devis.date_validite.strftime('%d/%m/%Y')}
 - Montant Total TTC: {devis.total_ttc} CFA
 
+Votre commercial:
+- Nom: {commercial_contact['nom']}
+{contact_block}
+
 N'hésitez pas à nous contacter pour toute question.
 
 Cordialement,
-{devis.utilisateur.get_full_name() if devis.utilisateur else 'PWA Energy Solution'}
+{commercial_contact['nom']}
 """
     
     # Créer et envoyer l'email
@@ -644,6 +687,7 @@ Cordialement,
         body=message,
         from_email=settings.DEFAULT_FROM_EMAIL,
         to=[devis.client.email],
+        reply_to=[commercial_contact['email']] if commercial_contact['email'] else None,
     )
     
     # Attacher le PDF
