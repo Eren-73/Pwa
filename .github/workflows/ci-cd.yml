@@ -1,0 +1,91 @@
+# .github/workflows/ci-cd.yml
+# CI/CD pipeline: validate code, then deploy to both production sites.
+# Runs automatically on push to main and on manual trigger.
+# RELEVANT FILES:scripts/deploy_docker.sh,requirements.txt,README.md
+
+name: CI-CD Devis
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Validate Django App
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Django checks
+        run: python manage.py check
+
+      - name: Django tests
+        run: python manage.py test devis_app -v 2
+
+  deploy_site_a:
+    name: Deploy Site A
+    needs: validate
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Configure SSH key
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Add Site A host key
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H "${{ secrets.SERVER_A_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Deploy on Site A
+        env:
+          SSH_USER: ${{ secrets.SERVER_A_USER }}
+          SSH_HOST: ${{ secrets.SERVER_A_HOST }}
+          SSH_PORT: ${{ secrets.SERVER_A_PORT }}
+        run: |
+          ssh -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "cd /var/www/devis/Pwa && chmod +x scripts/deploy_docker.sh && ./scripts/deploy_docker.sh"
+
+  deploy_site_b:
+    name: Deploy Site B
+    needs: validate
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Configure SSH key
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Add Site B host key
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H "${{ secrets.SERVER_B_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Deploy on Site B
+        env:
+          SSH_USER: ${{ secrets.SERVER_B_USER }}
+          SSH_HOST: ${{ secrets.SERVER_B_HOST }}
+          SSH_PORT: ${{ secrets.SERVER_B_PORT }}
+        run: |
+          ssh -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "cd /var/www/devis/Pwa && chmod +x scripts/deploy_docker.sh && ./scripts/deploy_docker.sh"

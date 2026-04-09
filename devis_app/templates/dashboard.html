@@ -9,17 +9,31 @@
 
   </div>
 
+    <div class="alert alert-light border mb-3">
+            <strong>Rôle:</strong> {{ role_label }}
+            {% if can_view_global %}
+                <span class="badge bg-primary ms-2">Vue inter-sites</span>
+            {% else %}
+                <span class="badge bg-secondary ms-2">Filtré par site</span>
+            {% endif %}
+    </div>
+
 
   <!-- Actions desktop -->
   <div class="d-none d-md-flex justify-content-start mb-4 gap-2">
       <a href="{% url 'creer_devis' %}" class="btn btn-primary">➕ Créer un devis</a>
+      {% if is_admin_user %}
       <button type="button" id="btnSupprimerSelection" class="btn btn-danger" style="display:none;" data-bs-toggle="modal" data-bs-target="#confirmDeleteModal">
           🗑 Supprimer les devis sélectionnés
       </button>
+      {% endif %}
   </div>
 
-  <!-- Filtre par date -->
+  <!-- Filtre par date + recherche -->
   <form method="get" class="row g-2 mb-4">
+      <div class="col-12 col-md-4">
+          <input type="text" name="q" class="form-control" placeholder="Recherche devis, client, site..." value="{{ q|default:'' }}">
+      </div>
       <div class="col-12 col-md-auto">
           <input type="date" name="date_debut" class="form-control" placeholder="Date début">
       </div>
@@ -36,13 +50,21 @@
       {% for devis in devis_list %}
       <div class="col-12 col-sm-6 col-md-4 mb-3 devis-card" data-id="{{ devis.id }}">
           <div class="card card-devis shadow-sm position-relative p-2">
+                            {% if is_admin_user %}
               <div class="form-check position-absolute top-0 end-0 m-2">
                   <input type="checkbox" name="devis_ids" value="{{ devis.id }}" class="form-check-input check-devis" id="devis{{ devis.id }}">
               </div>
+                            {% endif %}
               <div class="card-body mt-2">
-                  <h2 class="card-title fs-5">Devis n° {{ devis.id }}</h2>
+                                    <h2 class="card-title fs-5">Devis n° {{ devis.numero_devis }}</h2>
                   <p class="card-text small">
                       <strong>Client :</strong> {{ devis.client }}<br>
+                                            <strong>Site :</strong>
+                                            {% if devis.point_vente %}
+                                                <span class="badge bg-info text-dark">{{ devis.point_vente.nom }}</span><br>
+                                            {% else %}
+                                                <span class="badge bg-secondary">Non assigné</span><br>
+                                            {% endif %}
                       <strong>Date :</strong> {{ devis.date_emission|date:"d/m/Y" }}<br>
                       <strong>Total TTC :</strong> {{ devis.total_ttc }} CFA<br>
                       <strong>Objet :</strong> {{ devis.detail_proposition }}

@@ -8,6 +8,20 @@ set -euo pipefail
 
 PROJECT_ROOT="/var/www/devis/Pwa"
 
+if command -v sudo >/dev/null 2>&1 && sudo -n true >/dev/null 2>&1; then
+  SUDO="sudo -n"
+else
+  SUDO=""
+fi
+
+run_docker_compose() {
+  if [ -n "$SUDO" ]; then
+    $SUDO docker compose "$@"
+  else
+    docker compose "$@"
+  fi
+}
+
 cd "$PROJECT_ROOT"
 
 if [ ! -f ".env" ]; then
@@ -21,13 +35,13 @@ if [ -d ".git" ]; then
   git pull origin main
 fi
 
-sudo docker compose down
-sudo docker compose up -d --build
+run_docker_compose down
+run_docker_compose up -d --build
 
-sudo docker compose ps
+run_docker_compose ps
 
 # Basic runtime checks
-sudo docker compose exec -T web python manage.py check
-sudo docker compose exec -T web python manage.py showmigrations | tail -n 20
+run_docker_compose exec -T web python manage.py check
+run_docker_compose exec -T web python manage.py showmigrations | tail -n 20
 
 echo "Deploy complete. App should be available on http://<server-ip>/"

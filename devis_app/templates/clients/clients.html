@@ -11,6 +11,23 @@
     </button>
 </div>
 
+<div class="alert alert-light border mb-3">
+    {% if can_view_global %}
+        <span class="badge bg-primary">Vue inter-sites</span>
+    {% else %}
+        <span class="badge bg-secondary">Filtré par site</span>
+    {% endif %}
+</div>
+
+<form method="get" class="row g-2 mb-4">
+    <div class="col-12 col-md-5">
+        <input type="text" name="q" class="form-control" placeholder="Recherche client, devis, site..." value="{{ q|default:'' }}">
+    </div>
+    <div class="col-12 col-md-auto">
+        <button type="submit" class="btn btn-outline-primary w-100">Rechercher</button>
+    </div>
+</form>
+
 <div class="collapse mb-4" id="ajouterClientForm">
     <div class="card card-body shadow-sm border-primary">
         <form method="post" action="{% url 'ajouter_client' %}">
@@ -58,12 +75,13 @@
                 <p class="card-text mb-1"><strong>📧 Email:</strong> {{ client.email }}</p>
                 <p class="card-text mb-1"><strong>📞 Téléphone:</strong> {{ client.telephone|default:"Non renseigné" }}</p>
                 <p class="card-text mb-1"><strong>📍 Adresse:</strong> {{ client.adresse|default:"Non renseignée" }}</p>
+                <p class="card-text mb-1"><strong>🏢 Site(s):</strong>
+                    {% for site in client.site_labels %}
+                        <span class="badge bg-info text-dark">{{ site }}</span>
+                    {% endfor %}
+                </p>
                 <p class="card-text mb-1"><strong>👤 Conseiller Commercial:</strong> 
-                    {% if client.devis_set.first.utilisateur %}
-                        {{ client.devis_set.first.utilisateur.get_full_name|default:client.devis_set.first.utilisateur.username }}
-                    {% else %}
-                        Non assigné
-                    {% endif %}
+                    {{ client.main_commercial_name }}
                 </p>
                 <p class="text-muted mb-2"><small>Ajouté le {{ client.date_creation|date:"d/m/Y" }}</small></p>
 

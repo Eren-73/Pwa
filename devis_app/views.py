@@ -6,7 +6,6 @@ from django.urls import reverse
 from .utils import generate_qr_code
 from django.http import JsonResponse
 from django.contrib import messages
-from django.views.decorators.csrf import csrf_exempt
 from django.template.loader import render_to_string
 from docx import Document
 from django.http import HttpResponse
@@ -14,7 +13,7 @@ from django.contrib.auth.decorators import login_required  # 🔹 AJOUT
 from django.contrib.auth.models import User
 from django.utils import timezone
 from django.db.models import Count
-from django.contrib.auth.decorators import user_passes_test
+from django.db.models import Q
 from .models import Devis, Profile
 import weasyprint
 import openpyxl
@@ -24,16 +23,83 @@ from django.conf import settings
 from .forms import CommercialCreateForm
 from .models import ActionCommercial
 import os
-from docx.oxml import parse_xml
 import io
 from django.core.mail import EmailMessage
+
+
+def _get_profile(user):
+    if not user.is_authenticated:
+        return None
+    try:
+        return user.profile
+    except Profile.DoesNotExist:
+        return None
+
+
+def _is_admin_user(user):
+    if not user.is_authenticated:
+        return False
+    if user.is_superuser:
+        return True
+    profile = _get_profile(user)
+    return bool(profile and profile.role == 'admin')
+
+
+def _is_responsable_user(user):
+    if not user.is_authenticated:
+        return False
+    if user.is_staff and not user.is_superuser:
+        return True
+    profile = _get_profile(user)
+    return bool(profile and profile.role == 'responsable')
+
+
+def _can_view_global(user):
+    return _is_admin_user(user) or _is_responsable_user(user)
+
+
+def _user_point_vente(user):
+    profile = _get_profile(user)
+    return profile.point_vente if profile else None
+
+
+def _scoped_devis_queryset(user):
+    base_qs = Devis.objects.select_related('client', 'point_vente', 'utilisateur')
+    if not user.is_authenticated:
+        return base_qs.none()
+
+    if _can_view_global(user):
+        return base_qs
+
+    point_vente = _user_point_vente(user)
+    if point_vente:
+        return base_qs.filter(point_vente=point_vente)
+
+    return base_qs.filter(utilisateur=user)
+
+
+def _scoped_clients_queryset(user):
+    if not user.is_authenticated:
+        return Client.objects.none()
+
+    if _can_view_global(user):
+        return Client.objects.all()
+
+    point_vente = _user_point_vente(user)
+    if point_vente:
+        return Client.objects.filter(devis__point_vente=point_vente).distinct()
+
+    return Client.objects.filter(devis__utilisateur=user).distinct()
 
 @login_required(login_url='login')
 def creer_devis(request, slug=None):
     # Mode modification si slug est fourni
     devis_existant = None
+    user_can_view_global = _can_view_global(request.user)
+    user_point_vente = _user_point_vente(request.user)
+
     if slug:
-        devis_existant = get_object_or_404(Devis, slug=slug)
+        devis_existant = get_object_or_404(_scoped_devis_queryset(request.user), slug=slug)
     
     LigneDevisFormSet = modelformset_factory(
         LigneDevis, form=LigneDevisForm, extra=3 if slug else 0, can_delete=True
@@ -101,26 +167,20 @@ def creer_devis(request, slug=None):
             devis_form = DevisForm(request.POST, request.FILES)
             formset = LigneDevisFormSet(request.POST, queryset=LigneDevis.objects.none())
 
+        # Commercial: verrouiller le point de vente sur son site
+        if not user_can_view_global and user_point_vente and 'point_vente' in devis_form.fields:
+            devis_form.fields['point_vente'].queryset = PointVente.objects.filter(pk=user_point_vente.pk)
+
         if devis_form.is_valid() and formset.is_valid():
             devis = devis_form.save(commit=False)
             
-            if slug:
-                # Mise à jour du numéro avec nouvelle date
-                ancien_numero_parts = devis.numero_devis.split('-')
-                numero_sequence = ancien_numero_parts[-1]
-                
-                from datetime import date
-                today = date.today()
-                date_str = today.strftime('%Y-%m-%d')
-                
-                devis.numero_devis = f"{date_str}-{numero_sequence}"
-                devis.date_emission = today
-                
-                from django.utils.text import slugify
-                devis.slug = slugify(devis.numero_devis)
-            else:
+            if not slug:
                 # 🔹 Lier le devis à l'utilisateur connecté (commercial)
                 devis.utilisateur = request.user
+
+            # Les commerciaux restent dans leur point de vente
+            if not user_can_view_global and user_point_vente:
+                devis.point_vente = user_point_vente
 
             # ✅ Vérifier si TVA doit être appliquée
             apply_tva = request.POST.get("apply_tva", "yes")
@@ -176,6 +236,11 @@ def creer_devis(request, slug=None):
             devis_form = DevisForm()
             formset = LigneDevisFormSet(queryset=LigneDevis.objects.none())
 
+        # Commercial: verrouiller le point de vente sur son site
+        if not user_can_view_global and user_point_vente and 'point_vente' in devis_form.fields:
+            devis_form.fields['point_vente'].queryset = PointVente.objects.filter(pk=user_point_vente.pk)
+            devis_form.fields['point_vente'].initial = user_point_vente
+
     # 🔹 Nombre total de devis créés par l'utilisateur connecté
     nombre_devis = Devis.objects.filter(utilisateur=request.user).count()
 
@@ -202,27 +267,73 @@ def dashboard(request):
     # Filtrer par date si des paramètres GET sont passés
     date_debut = request.GET.get('date_debut')
     date_fin = request.GET.get('date_fin')
+    query = (request.GET.get('q') or '').strip()
 
-    # Admin voit tous les devis, commercial voit seulement les siens
-    if request.user.is_superuser:
-        devis_list = Devis.objects.all().order_by('-date_emission')
-    else:
-        devis_list = Devis.objects.filter(utilisateur=request.user).order_by('-date_emission')
+    devis_list = _scoped_devis_queryset(request.user).order_by('-date_emission')
 
     if date_debut and date_fin:
         devis_list = devis_list.filter(
             date_emission__range=[date_debut, date_fin]
         )
 
-    return render(request, 'dashboard.html', {'devis_list': devis_list})
+    if query:
+        devis_list = devis_list.filter(
+            Q(numero_devis__icontains=query)
+            | Q(client__nom__icontains=query)
+            | Q(client__prenom__icontains=query)
+            | Q(client__email__icontains=query)
+            | Q(detail_proposition__icontains=query)
+            | Q(point_vente__nom__icontains=query)
+        )
+
+    role_label = 'Commercial'
+    if _is_admin_user(request.user):
+        role_label = 'Admin'
+    elif _is_responsable_user(request.user):
+        role_label = 'Responsable'
+
+    return render(request, 'dashboard.html', {
+        'devis_list': devis_list,
+        'q': query,
+        'can_view_global': _can_view_global(request.user),
+        'is_admin_user': _is_admin_user(request.user),
+        'role_label': role_label,
+    })
 
 
 
 
 @login_required(login_url='login')
 def liste_clients(request):
-    clients = Client.objects.all()
-    return render(request, 'clients/clients.html', {'clients': clients})
+    query = (request.GET.get('q') or '').strip()
+    clients = _scoped_clients_queryset(request.user).order_by('-date_creation')
+
+    if query:
+        clients = clients.filter(
+            Q(nom__icontains=query)
+            | Q(prenom__icontains=query)
+            | Q(email__icontains=query)
+            | Q(telephone__icontains=query)
+            | Q(devis__numero_devis__icontains=query)
+            | Q(devis__point_vente__nom__icontains=query)
+        ).distinct()
+
+    for client in clients:
+        client_devis = _scoped_devis_queryset(request.user).filter(client=client).select_related('point_vente')
+        labels = sorted({d.point_vente.nom for d in client_devis if d.point_vente})
+        client.site_labels = labels if labels else ['Non assigné']
+        first_devis = client_devis.first()
+        if first_devis and first_devis.utilisateur:
+            full_name = first_devis.utilisateur.get_full_name().strip()
+            client.main_commercial_name = full_name or first_devis.utilisateur.username
+        else:
+            client.main_commercial_name = 'Non assigné'
+
+    return render(request, 'clients/clients.html', {
+        'clients': clients,
+        'q': query,
+        'can_view_global': _can_view_global(request.user),
+    })
 
 
 @login_required(login_url='login')
@@ -238,7 +349,7 @@ def ajouter_client(request):
 
 @login_required(login_url='login')
 def modifier_client(request, slug):
-    client = get_object_or_404(Client, slug=slug)
+    client = get_object_or_404(_scoped_clients_queryset(request.user), slug=slug)
     if request.method == 'POST':
         form = ClientForm(request.POST, instance=client)
         if form.is_valid():
@@ -251,7 +362,11 @@ def modifier_client(request, slug):
 
 @login_required(login_url='login')
 def supprimer_client(request, slug):
-    client = get_object_or_404(Client, slug=slug)
+    if not _is_admin_user(request.user):
+        messages.error(request, "Accès non autorisé.")
+        return redirect('liste_clients')
+
+    client = get_object_or_404(_scoped_clients_queryset(request.user), slug=slug)
     if request.method == 'POST':
         client.delete()
         return redirect('/clients/?deleted=1')
@@ -259,8 +374,8 @@ def supprimer_client(request, slug):
 
 @login_required(login_url='login')
 def devis_par_client(request, slug):
-    client = get_object_or_404(Client, slug=slug)
-    devis_list = Devis.objects.filter(client=client)
+    client = get_object_or_404(_scoped_clients_queryset(request.user), slug=slug)
+    devis_list = _scoped_devis_queryset(request.user).filter(client=client)
     return render(request, 'clients/devis_par_client.html', {
         'client': client,
         'devis_list': devis_list
@@ -268,7 +383,7 @@ def devis_par_client(request, slug):
 
 @login_required(login_url='login')
 def detail_devis(request, slug):
-    devis = get_object_or_404(Devis, slug=slug)
+    devis = get_object_or_404(_scoped_devis_queryset(request.user), slug=slug)
     # Récupère les lignes associées au devis pour l'affichage
     lignes = devis.lignes.all()
 
@@ -285,7 +400,7 @@ def modifier_devis(request, slug):
     import json
     from django.forms import model_to_dict
     
-    devis = get_object_or_404(Devis, slug=slug)
+    devis = get_object_or_404(_scoped_devis_queryset(request.user), slug=slug)
     LigneDevisFormSet = modelformset_factory(
         LigneDevis, form=LigneDevisForm, extra=3, can_delete=True
     )
@@ -350,23 +465,12 @@ def modifier_devis(request, slug):
         if devis_form.is_valid() and formset.is_valid():
             # Sauvegarder le devis avec mise à jour de la date uniquement
             devis = devis_form.save(commit=False)
-            
-            # Extraire le numéro séquentiel de l'ancien numéro de devis
-            ancien_numero_parts = devis.numero_devis.split('-')
-            numero_sequence = ancien_numero_parts[-1]  # Garde le dernier élément (ex: 00001)
-            
-            # Générer le nouveau numéro avec la date actuelle mais le même numéro séquentiel
-            from datetime import date
-            today = date.today()
-            date_str = today.strftime('%Y-%m-%d')
-            
-            # Nouveau numéro de devis avec même séquence
-            devis.numero_devis = f"{date_str}-{numero_sequence}"
-            devis.date_emission = today
-            
-            # Générer un nouveau slug basé sur le nouveau numéro
-            from django.utils.text import slugify
-            devis.slug = slugify(devis.numero_devis)
+
+            # Commercial: verrouiller le point de vente sur son site
+            if not _can_view_global(request.user):
+                user_point_vente = _user_point_vente(request.user)
+                if user_point_vente:
+                    devis.point_vente = user_point_vente
             
             # Vérifier la TVA
             apply_tva = request.POST.get("apply_tva", "yes")
@@ -415,7 +519,7 @@ def historique_devis(request, slug):
     """Afficher l'historique des modifications d'un devis"""
     from .models import HistoriqueDevis
     
-    devis = get_object_or_404(Devis, slug=slug)
+    devis = get_object_or_404(_scoped_devis_queryset(request.user), slug=slug)
     historique = HistoriqueDevis.objects.filter(devis=devis).order_by('-date_modification')
     
     return render(request, 'devis/historique_devis.html', {
@@ -429,7 +533,7 @@ def voir_version_historique(request, historique_id):
     """
     Affiche une version historique du devis comme une facture complète
     """
-    historique = get_object_or_404(HistoriqueDevis, id=historique_id)
+    historique = get_object_or_404(HistoriqueDevis, id=historique_id, devis__in=_scoped_devis_queryset(request.user))
     devis_actuel = historique.devis
     
     # Créer un objet devis temporaire avec les données historiques
@@ -447,13 +551,15 @@ def voir_version_historique(request, historique_id):
         return redirect('historique_devis', slug=devis_actuel.slug)
 
 
-@csrf_exempt
+@login_required(login_url='login')
 def supprimer_devis_selectionnes(request):
     if request.method == "POST":
+        if not _is_admin_user(request.user):
+            return JsonResponse({"success": False, "error": "Accès non autorisé"}, status=403)
         try:
             data = json.loads(request.body)
             devis_ids = [int(i) for i in data.get("devis_ids", [])]  # conversion en int
-            Devis.objects.filter(id__in=devis_ids).delete()
+            _scoped_devis_queryset(request.user).filter(id__in=devis_ids).delete()
             return JsonResponse({"success": True})
         except Exception as e:
             return JsonResponse({"success": False, "error": str(e)}, status=400)
@@ -461,38 +567,11 @@ def supprimer_devis_selectionnes(request):
 
 
 @login_required(login_url='login')
-def export_pdf(request, slug):
-    """
-    Exporte un devis en PDF en utilisant weasyprint
-    """
-    devis = get_object_or_404(Devis, slug=slug)
-    lignes = devis.lignes.all()
-    
-    # Rendre le template HTML avec le paramètre is_pdf
-    html_string = render_to_string('devis/devis_template.html', {
-        'devis': devis,
-        'lignes': lignes,
-        'qr_code_url': request.build_absolute_uri(devis.qr_code.url) if devis.qr_code else None,
-        'is_pdf': True,  # Paramètre pour masquer les boutons
-    })
-    
-    # Créer le PDF avec weasyprint
-    html = weasyprint.HTML(string=html_string, base_url=request.build_absolute_uri())
-    pdf = html.write_pdf()
-    
-    # Créer la réponse HTTP
-    response = HttpResponse(pdf, content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="devis_{devis.numero_devis}.pdf"'
-    
-    return response
-
-
-@login_required(login_url='login')
 def envoyer_devis_par_email(request, slug):
     """
     Envoie le devis par email au client avec le PDF en pièce jointe
     """
-    devis = get_object_or_404(Devis, slug=slug)
+    devis = get_object_or_404(_scoped_devis_queryset(request.user), slug=slug)
     lignes = devis.lignes.all()
     
     # Vérifier si le client a un email
@@ -550,7 +629,7 @@ Cordialement,
 
 @login_required(login_url='login')
 def export_devis_excel(request, slug):
-    devis = get_object_or_404(Devis, slug=slug)
+    devis = get_object_or_404(_scoped_devis_queryset(request.user), slug=slug)
     lignes = devis.lignes.all()
 
     # Create workbook and worksheet
@@ -821,9 +900,10 @@ def ajouter_categorie(request):
     return render(request, 'modifier_categorie.html', {'form': form})
 
 
+@login_required(login_url='login')
 def export_pdf(request, slug):
     """Export the devis to PDF using WeasyPrint with proper image handling."""
-    devis = get_object_or_404(Devis, slug=slug)
+    devis = get_object_or_404(_scoped_devis_queryset(request.user), slug=slug)
     lignes = devis.lignes.all()
     
     # Get the absolute URL for media files
@@ -878,7 +958,7 @@ def export_devis_word(request, slug):
     This is intentionally lightweight to ensure the view exists and works.
     We can expand formatting later to match your desired layout exactly.
     """
-    devis = get_object_or_404(Devis, slug=slug)
+    devis = get_object_or_404(_scoped_devis_queryset(request.user), slug=slug)
     lignes = devis.lignes.all()
 
     doc = Document()
@@ -905,6 +985,10 @@ def liste_point_ventes(request):
     """
     Liste tous les points de vente.
     """
+    if not _is_admin_user(request.user):
+        messages.error(request, "Accès non autorisé.")
+        return redirect('dashboard')
+
     points = PointVente.objects.all().order_by('nom')
     return render(request, 'points_vente/point_vente_list.html', {'points': points})
 
@@ -914,6 +998,10 @@ def ajouter_point_vente(request):
     """
     Ajouter un nouveau point de vente.
     """
+    if not _is_admin_user(request.user):
+        messages.error(request, "Accès non autorisé.")
+        return redirect('dashboard')
+
     from .forms import PointVenteForm
     
     if request.method == 'POST':
@@ -933,6 +1021,10 @@ def modifier_point_vente(request, pk):
     """
     Modifier un point de vente existant.
     """
+    if not _is_admin_user(request.user):
+        messages.error(request, "Accès non autorisé.")
+        return redirect('dashboard')
+
     from .forms import PointVenteForm
     
     point_vente = get_object_or_404(PointVente, pk=pk)
@@ -957,6 +1049,10 @@ def supprimer_point_vente(request, pk):
     """
     Supprimer un point de vente.
     """
+    if not _is_admin_user(request.user):
+        messages.error(request, "Accès non autorisé.")
+        return redirect('dashboard')
+
     point_vente = get_object_or_404(PointVente, pk=pk)
     
     if request.method == 'POST':
@@ -979,7 +1075,7 @@ def admin_dashboard(request):
     from django.db.models import Count, Sum, F
     
     # Vérifier que l'utilisateur est un admin
-    if not request.user.is_superuser:
+    if not _can_view_global(request.user):
         messages.error(request, "Accès non autorisé.")
         return redirect('dashboard')
 
@@ -1064,7 +1160,7 @@ def commerciaux_devis_list(request):
     Accessible uniquement aux superusers (admin).
     """
     # accès restreint aux admins
-    if not request.user.is_superuser:
+    if not _can_view_global(request.user):
         messages.error(request, "Accès non autorisé.")
         return redirect('dashboard')
 
@@ -1084,7 +1180,7 @@ def commerciaux_devis_list(request):
 @login_required(login_url='login')
 def create_commercial(request):
     """Permet à l'admin de créer un compte commercial et l'assigner."""
-    if not request.user.is_superuser:
+    if not _is_admin_user(request.user):
         messages.error(request, "Accès non autorisé.")
         return redirect('dashboard')
 
@@ -1108,7 +1204,7 @@ def create_commercial(request):
 @login_required(login_url='login')
 def liste_commerciaux(request):
     """Liste tous les commerciaux."""
-    if not request.user.is_superuser:
+    if not _can_view_global(request.user):
         messages.error(request, "Accès non autorisé.")
         return redirect('dashboard')
     
@@ -1124,7 +1220,7 @@ def liste_commerciaux(request):
 @login_required(login_url='login')
 def modifier_commercial(request, user_id):
     """Permet à l'admin de modifier un commercial."""
-    if not request.user.is_superuser:
+    if not _is_admin_user(request.user):
         messages.error(request, "Accès non autorisé.")
         return redirect('dashboard')
     
@@ -1175,7 +1271,7 @@ def modifier_commercial(request, user_id):
 @login_required(login_url='login')
 def supprimer_commercial(request, user_id):
     """Permet à l'admin de supprimer un commercial."""
-    if not request.user.is_superuser:
+    if not _is_admin_user(request.user):
         messages.error(request, "Accès non autorisé.")
         return redirect('dashboard')
     
@@ -1193,7 +1289,7 @@ def supprimer_commercial(request, user_id):
 @login_required(login_url='login')
 def regenerate_qr_codes_view(request):
     """Permet à l'admin de régénérer tous les QR codes."""
-    if not request.user.is_superuser:
+    if not _is_admin_user(request.user):
         messages.error(request, "Accès non autorisé.")
         return redirect('dashboard')
     
@@ -1237,7 +1333,7 @@ def regenerate_qr_codes_view(request):
 def custom_login(request):
     """Vue de connexion avec redirection selon le rôle."""
     if request.user.is_authenticated:
-        if request.user.is_superuser:
+        if _can_view_global(request.user):
             return redirect('admin_dashboard')
         return redirect('dashboard')
 
@@ -1248,7 +1344,7 @@ def custom_login(request):
         user = authenticate(request, username=username, password=password)
         if user is not None:
             login(request, user)
-            if user.is_superuser:
+            if _can_view_global(user):
                 return redirect('admin_dashboard')
             return redirect('dashboard')
         else:
@@ -1260,7 +1356,7 @@ def custom_login(request):
 @login_required
 def liste_responsables(request):
     """Liste des responsables commerciaux — accessible admin uniquement."""
-    if not request.user.is_superuser:
+    if not _is_admin_user(request.user):
         messages.error(request, "Accès non autorisé.")
         return redirect('dashboard')
     responsables = ResponsableCommercial.objects.all()
@@ -1270,7 +1366,7 @@ def liste_responsables(request):
 @login_required
 def ajouter_responsable(request):
     """Ajouter un responsable commercial."""
-    if not request.user.is_superuser:
+    if not _is_admin_user(request.user):
         messages.error(request, "Accès non autorisé.")
         return redirect('dashboard')
     if request.method == 'POST':
@@ -1286,7 +1382,7 @@ def ajouter_responsable(request):
 @login_required
 def supprimer_responsable(request, pk):
     """Supprimer un responsable commercial."""
-    if not request.user.is_superuser:
+    if not _is_admin_user(request.user):
         messages.error(request, "Accès non autorisé.")
         return redirect('dashboard')
     responsable = get_object_or_404(ResponsableCommercial, pk=pk)
@@ -1308,8 +1404,8 @@ def responsables_suggestions(request):
 
 def client_factures(request, client_slug):
     """Portail client : affiche toutes les factures d'un client via son slug."""
-    client = get_object_or_404(Client, slug=client_slug)
-    devis_list = Devis.objects.filter(client=client).order_by('-date_emission')
+    client = get_object_or_404(_scoped_clients_queryset(request.user), slug=client_slug)
+    devis_list = _scoped_devis_queryset(request.user).filter(client=client).order_by('-date_emission')
     return render(request, 'clients/client_factures.html', {
         'client': client,
         'devis_list': devis_list,
