@@ -85,23 +85,9 @@ def _scoped_clients_queryset(user):
     if _can_view_global(user):
         return Client.objects.all()
 
-    # Clients créés directement par ce commercial (sans devis encore lié)
-    created_client_slugs = []
-    for log in ActionCommercial.objects.filter(
-        user=user,
-        action__startswith='Création du client '
-    ).only('action'):
-        created_client_slugs.append(log.action.replace('Création du client ', '').strip())
-
-    point_vente = _user_point_vente(user)
-    if point_vente:
-        return Client.objects.filter(
-            Q(devis__point_vente=point_vente) | Q(slug__in=created_client_slugs)
-        ).distinct()
-
-    return Client.objects.filter(
-        Q(devis__utilisateur=user) | Q(slug__in=created_client_slugs)
-    ).distinct()
+    # Les commerciaux doivent voir les clients existants, même avant qu'un devis leur soit lié.
+    # On garde la restriction admin pour les actions sensibles (suppression, etc.).
+    return Client.objects.all()
 
 @login_required(login_url='login')
 def creer_devis(request, slug=None):
