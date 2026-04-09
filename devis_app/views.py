@@ -64,7 +64,7 @@ def _user_point_vente(user):
 
 
 def _scoped_devis_queryset(user):
-    base_qs = Devis.objects.select_related('client', 'point_vente', 'utilisateur')
+    base_qs = Devis.objects.select_related('client', 'point_vente', 'utilisateur', 'utilisateur__profile__point_vente')
     if not user.is_authenticated:
         return base_qs.none()
 
@@ -285,6 +285,13 @@ def dashboard(request):
             | Q(detail_proposition__icontains=query)
             | Q(point_vente__nom__icontains=query)
         )
+
+    # Site affiché: point de vente du devis, sinon site du commercial créateur.
+    for devis in devis_list:
+        resolved_site = devis.point_vente
+        if not resolved_site and devis.utilisateur and hasattr(devis.utilisateur, 'profile'):
+            resolved_site = devis.utilisateur.profile.point_vente
+        devis.resolved_site = resolved_site
 
     role_label = 'Commercial'
     if _is_admin_user(request.user):

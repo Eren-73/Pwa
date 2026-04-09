@@ -12,9 +12,9 @@
     <div class="alert alert-light border mb-3">
             <strong>Rôle:</strong> {{ role_label }}
             {% if can_view_global %}
-                <span class="badge bg-primary ms-2">Vue inter-sites</span>
+                <span class="badge bg-primary ms-2">Vue inter points de vente</span>
             {% else %}
-                <span class="badge bg-secondary ms-2">Filtré par site</span>
+                <span class="badge bg-secondary ms-2">Filtré par point de vente</span>
             {% endif %}
     </div>
 
@@ -32,7 +32,7 @@
   <!-- Filtre par date + recherche -->
   <form method="get" class="row g-2 mb-4">
       <div class="col-12 col-md-4">
-          <input type="text" name="q" class="form-control" placeholder="Recherche devis, client, site..." value="{{ q|default:'' }}">
+          <input type="text" name="q" class="form-control" placeholder="Recherche devis, client, point de vente..." value="{{ q|default:'' }}">
       </div>
       <div class="col-12 col-md-auto">
           <input type="date" name="date_debut" class="form-control" placeholder="Date début">
@@ -59,9 +59,9 @@
                                     <h2 class="card-title fs-5">Devis n° {{ devis.numero_devis }}</h2>
                   <p class="card-text small">
                       <strong>Client :</strong> {{ devis.client }}<br>
-                                            <strong>Site :</strong>
-                                            {% if devis.point_vente %}
-                                                <span class="badge bg-info text-dark">{{ devis.point_vente.nom }}</span><br>
+                                            <strong>Point de vente :</strong>
+                                            {% if devis.resolved_site %}
+                                                <span class="badge bg-info text-dark">{{ devis.resolved_site.nom }}</span><br>
                                             {% else %}
                                                 <span class="badge bg-secondary">Non assigné</span><br>
                                             {% endif %}

@@ -13,15 +13,15 @@
 
 <div class="alert alert-light border mb-3">
     {% if can_view_global %}
-        <span class="badge bg-primary">Vue inter-sites</span>
+        <span class="badge bg-primary">Vue inter points de vente</span>
     {% else %}
-        <span class="badge bg-secondary">Filtré par site</span>
+        <span class="badge bg-secondary">Filtré par point de vente</span>
     {% endif %}
 </div>
 
 <form method="get" class="row g-2 mb-4">
     <div class="col-12 col-md-5">
-        <input type="text" name="q" class="form-control" placeholder="Recherche client, devis, site..." value="{{ q|default:'' }}">
+        <input type="text" name="q" class="form-control" placeholder="Recherche client, devis, point de vente..." value="{{ q|default:'' }}">
     </div>
     <div class="col-12 col-md-auto">
         <button type="submit" class="btn btn-outline-primary w-100">Rechercher</button>
@@ -75,7 +75,7 @@
                 <p class="card-text mb-1"><strong>📧 Email:</strong> {{ client.email }}</p>
                 <p class="card-text mb-1"><strong>📞 Téléphone:</strong> {{ client.telephone|default:"Non renseigné" }}</p>
                 <p class="card-text mb-1"><strong>📍 Adresse:</strong> {{ client.adresse|default:"Non renseignée" }}</p>
-                <p class="card-text mb-1"><strong>🏢 Site(s):</strong>
+                <p class="card-text mb-1"><strong>🏢 Point(s) de vente:</strong>
                     {% for site in client.site_labels %}
                         <span class="badge bg-info text-dark">{{ site }}</span>
                     {% endfor %}
