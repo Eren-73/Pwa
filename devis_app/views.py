@@ -223,6 +223,8 @@ def creer_devis(request, slug=None):
                 messages.success(request, f"Proposition commerciale n°{devis.numero_devis} créée avec succès.")
 
             return redirect('devis_template', slug=devis.slug)
+        else:
+            messages.error(request, "Impossible d'enregistrer le devis. Vérifie les champs du formulaire et les lignes produits.")
 
     else:
         if slug:

@@ -120,6 +120,7 @@
                 {% endif %}
                 {% for form in formset %}
                     <div class="formset-form">
+                        {{ form.id }}
                         {% for field in form %}
                             {% if field.name != "id" and field.name != "DELETE" %}
                             <div class="mb-3">
@@ -131,6 +132,9 @@
                             </div>
                             {% endif %}
                         {% endfor %}
+                        {% if form.id.errors %}
+                            <div class="text-danger small mt-1">{{ form.id.errors|striptags }}</div>
+                        {% endif %}
                         <button type="button" class="btn btn-danger btn-sm remove-form">Supprimer</button>
                     </div>
                 {% endfor %}
