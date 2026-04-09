@@ -85,11 +85,23 @@ def _scoped_clients_queryset(user):
     if _can_view_global(user):
         return Client.objects.all()
 
+    # Clients créés directement par ce commercial (sans devis encore lié)
+    created_client_slugs = []
+    for log in ActionCommercial.objects.filter(
+        user=user,
+        action__startswith='Création du client '
+    ).only('action'):
+        created_client_slugs.append(log.action.replace('Création du client ', '').strip())
+
     point_vente = _user_point_vente(user)
     if point_vente:
-        return Client.objects.filter(devis__point_vente=point_vente).distinct()
+        return Client.objects.filter(
+            Q(devis__point_vente=point_vente) | Q(slug__in=created_client_slugs)
+        ).distinct()
 
-    return Client.objects.filter(devis__utilisateur=user).distinct()
+    return Client.objects.filter(
+        Q(devis__utilisateur=user) | Q(slug__in=created_client_slugs)
+    ).distinct()
 
 @login_required(login_url='login')
 def creer_devis(request, slug=None):
@@ -341,11 +353,20 @@ def ajouter_client(request):
     if request.method == 'POST':
         form = ClientForm(request.POST)
         if form.is_valid():
-            client = form.save()  # 
+            client = form.save()
+            ActionCommercial.objects.create(
+                user=request.user,
+                action=f"Création du client {client.slug}"
+            )
+            messages.success(request, "Client ajouté avec succès.")
             return redirect('liste_clients')
     else:
         form = ClientForm()
-        return render(request, 'clients/ajouter_client.html', {'form': form})
+
+    if request.method == 'POST' and form.errors:
+        messages.error(request, "Impossible d'ajouter le client. Vérifie les champs saisis.")
+
+    return render(request, 'clients/ajouter_client.html', {'form': form})
 
 @login_required(login_url='login')
 def modifier_client(request, slug):
