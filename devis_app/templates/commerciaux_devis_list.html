@@ -18,6 +18,12 @@
               <div class="text-muted small">Username: {{ user.username }}</div>
             </div>
             <div class="text-end">
+              {% if is_admin_user %}
+                <div class="mb-1">
+                  <a href="{% url 'modifier_commercial' user.id %}" class="btn btn-sm btn-warning">Modifier</a>
+                  <a href="{% url 'supprimer_commercial' user.id %}" class="btn btn-sm btn-danger">Supprimer</a>
+                </div>
+              {% endif %}
               <div class="small text-muted">Dernière connexion:
                 {% if user.last_login %}
                   {{ user.last_login|date:"d/m/Y H:i" }}
