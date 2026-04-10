@@ -78,6 +78,20 @@ def _scoped_devis_queryset(user):
     return base_qs.filter(utilisateur=user)
 
 
+def _deletable_devis_queryset(user):
+    """Devis que l'utilisateur a le droit de supprimer."""
+    base_qs = Devis.objects.all()
+    if not user.is_authenticated:
+        return base_qs.none()
+
+    # Admin/Responsable: suppression globale
+    if _can_view_global(user):
+        return base_qs
+
+    # Commercial: suppression uniquement de ses propres devis
+    return base_qs.filter(utilisateur=user)
+
+
 def _scoped_clients_queryset(user):
     if not user.is_authenticated:
         return Client.objects.none()
@@ -286,12 +300,15 @@ def dashboard(request):
             | Q(point_vente__nom__icontains=query)
         )
 
+    deletable_ids = set(_deletable_devis_queryset(request.user).values_list('id', flat=True))
+
     # Site affiché: point de vente du devis, sinon site du commercial créateur.
     for devis in devis_list:
         resolved_site = devis.point_vente
         if not resolved_site and devis.utilisateur and hasattr(devis.utilisateur, 'profile'):
             resolved_site = devis.utilisateur.profile.point_vente
         devis.resolved_site = resolved_site
+        devis.can_delete = devis.id in deletable_ids
 
     role_label = 'Commercial'
     if _is_admin_user(request.user):
@@ -304,6 +321,7 @@ def dashboard(request):
         'q': query,
         'can_view_global': _can_view_global(request.user),
         'is_admin_user': _is_admin_user(request.user),
+        'can_delete_devis': request.user.is_authenticated,
         'role_label': role_label,
     })
 
@@ -585,12 +603,12 @@ def voir_version_historique(request, historique_id):
 @login_required(login_url='login')
 def supprimer_devis_selectionnes(request):
     if request.method == "POST":
-        if not _is_admin_user(request.user):
-            return JsonResponse({"success": False, "error": "Accès non autorisé"}, status=403)
         try:
             data = json.loads(request.body)
             devis_ids = [int(i) for i in data.get("devis_ids", [])]  # conversion en int
-            _scoped_devis_queryset(request.user).filter(id__in=devis_ids).delete()
+            deleted_count, _ = _deletable_devis_queryset(request.user).filter(id__in=devis_ids).delete()
+            if deleted_count == 0 and devis_ids:
+                return JsonResponse({"success": False, "error": "Aucun devis supprimé (droits insuffisants)."}, status=403)
             return JsonResponse({"success": True})
         except Exception as e:
             return JsonResponse({"success": False, "error": str(e)}, status=400)

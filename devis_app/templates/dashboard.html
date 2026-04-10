@@ -22,7 +22,7 @@
   <!-- Actions desktop -->
   <div class="d-none d-md-flex justify-content-start mb-4 gap-2">
       <a href="{% url 'creer_devis' %}" class="btn btn-primary">➕ Créer un devis</a>
-      {% if is_admin_user %}
+      {% if can_delete_devis %}
       <button type="button" id="btnSupprimerSelection" class="btn btn-danger" style="display:none;" data-bs-toggle="modal" data-bs-target="#confirmDeleteModal">
           🗑 Supprimer les devis sélectionnés
       </button>
@@ -50,7 +50,7 @@
       {% for devis in devis_list %}
       <div class="col-12 col-sm-6 col-md-4 mb-3 devis-card" data-id="{{ devis.id }}">
           <div class="card card-devis shadow-sm position-relative p-2">
-                            {% if is_admin_user %}
+                            {% if devis.can_delete %}
               <div class="form-check position-absolute top-0 end-0 m-2">
                   <input type="checkbox" name="devis_ids" value="{{ devis.id }}" class="form-check-input check-devis" id="devis{{ devis.id }}">
               </div>
