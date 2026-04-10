@@ -339,8 +339,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if(selectedIds.length === 0) return;
 
-        fetch("{% url 'supprimer_devis_selectionnes' %}", {
+        const deleteUrl = new URL("{% url 'supprimer_devis_selectionnes' %}", window.location.origin).toString();
+
+        fetch(deleteUrl, {
             method: "POST",
+            credentials: "same-origin",
             headers: {
                 "Content-Type": "application/json",
                 "X-CSRFToken": csrftoken
