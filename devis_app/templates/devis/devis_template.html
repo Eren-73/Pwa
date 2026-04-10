@@ -7,13 +7,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Proposition commerciale - Proforma</title>
     
-    <!-- Apply theme immediately to prevent flash -->
+    <!-- Devis page is intentionally fixed to light theme -->
     <script>
-        (function() {
-            const theme = localStorage.getItem('theme-preference') || 
-                (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-            document.documentElement.setAttribute('data-theme', theme);
-        })();
+        document.documentElement.setAttribute('data-theme', 'light');
     </script>
 
     <!-- Bootstrap pour dropdown Exporter -->
@@ -355,66 +351,8 @@
 
     </style>
     
-    <!-- Theme Toggle JS - Inline -->
-    <script>
-        (function() {
-            'use strict';
-            const ThemeManager = {
-                STORAGE_KEY: 'theme-preference',
-                THEME_DARK: 'dark',
-                THEME_LIGHT: 'light',
-                getPreferredTheme() {
-                    const storedTheme = localStorage.getItem(this.STORAGE_KEY);
-                    if (storedTheme) return storedTheme;
-                    return window.matchMedia('(prefers-color-scheme: dark)').matches ? this.THEME_DARK : this.THEME_LIGHT;
-                },
-                setTheme(theme) {
-                    document.documentElement.setAttribute('data-theme', theme);
-                    localStorage.setItem(this.STORAGE_KEY, theme);
-                    this.updateIcon(theme);
-                },
-                updateIcon(theme) {
-                    const toggleBtn = document.getElementById('theme-toggle');
-                    if (!toggleBtn) return;
-                    const icon = toggleBtn.querySelector('i');
-                    if (!icon) return;
-                    if (theme === this.THEME_DARK) {
-                        icon.className = 'bi bi-sun-fill';
-                        toggleBtn.setAttribute('aria-label', 'Passer au thème clair');
-                    } else {
-                        icon.className = 'bi bi-moon-fill';
-                        toggleBtn.setAttribute('aria-label', 'Passer au thème sombre');
-                    }
-                },
-                toggleTheme() {
-                    const currentTheme = document.documentElement.getAttribute('data-theme') || this.getPreferredTheme();
-                    const newTheme = currentTheme === this.THEME_DARK ? this.THEME_LIGHT : this.THEME_DARK;
-                    this.setTheme(newTheme);
-                },
-                init() {
-                    const theme = this.getPreferredTheme();
-                    this.setTheme(theme);
-                    const toggleBtn = document.getElementById('theme-toggle');
-                    if (toggleBtn) {
-                        toggleBtn.addEventListener('click', () => this.toggleTheme());
-                    }
-                }
-            };
-            if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', () => ThemeManager.init());
-            } else {
-                ThemeManager.init();
-            }
-        })();
-    </script>
 </head>
 <body>
-    <!-- Theme Toggle Button -->
-    <button id="theme-toggle" class="theme-toggle no-print" aria-label="Changer de thème">
-        <i class="bi bi-moon-fill"></i>
-    </button>
-
-
         <!-- Affichage des messages Django -->
         {% if messages %}
             <div style="margin: 20px 0;">
@@ -432,6 +370,7 @@
         {% if not is_pdf %}
         <div class="top-buttons">
             <button onclick="window.history.back()">⬅ Retour</button>
+            <a href="{% url 'dashboard' %}" class="btn" style="padding: 6px 14px; font-size: 13px; text-decoration: none; display: inline-block;">🚪 Quitter</a>
             <button onclick="window.print()">🖨 Imprimer</button>
             <a href="{% url 'modifier_devis_v2' devis.slug %}" class="btn" style="padding: 6px 14px; font-size: 13px; text-decoration: none; display: inline-block;">✏️ Modifier</a>
             <a href="{% url 'historique_devis' devis.slug %}" class="btn" style="padding: 6px 14px; font-size: 13px; text-decoration: none; display: inline-block;">📜 Historique</a>
@@ -457,22 +396,11 @@
                     <li>
                         {% if devis.client and devis.client.email %}
                             <a class="dropdown-item" href="{% url 'envoyer_devis_par_email' devis.slug %}">
-                                📧 Envoyer par Email ({{ devis.client.email }})
+                                📧 Envoyer par Email
                             </a>
                         {% else %}
                             <a class="dropdown-item" href="#" onclick="alert('Le client n\'a pas d\'adresse email.'); return false;">
-                                📧 Email (Aucun email client)
-                            </a>
-                        {% endif %}
-                    </li>
-                    <li>
-                        {% if devis.client and devis.client.telephone %}
-                            <a class="dropdown-item" href="https://wa.me/{{ devis.client.telephone|cut:' '|cut:'-'|cut:'+' }}?text=Bonjour%20{{ devis.client.prenom }}%20{{ devis.client.nom }},%20voici%20votre%20devis%20N°%20{{ devis.numero_devis }}%20d'un%20montant%20de%20{{ devis.total_ttc }}%20CFA.%20Vous%20pouvez%20le%20consulter%20via%20ce%20lien:%20{{ request.build_absolute_uri }}.%20Votre%20commercial:%20{{ commercial_contact.nom }}{% if commercial_contact.telephone %}%20-%20Tel:%20{{ commercial_contact.telephone|cut:' '|cut:'-'|cut:'+' }}{% endif %}{% if commercial_contact.email %}%20-%20Email:%20{{ commercial_contact.email }}{% endif %}" target="_blank">
-                                💬 WhatsApp ({{ devis.client.telephone }}) - Commercial: {{ commercial_contact.telephone|default:"Non renseigné" }}
-                            </a>
-                        {% else %}
-                            <a class="dropdown-item" href="https://wa.me/?text=Bonjour,%20voici%20le%20devis%20N°%20{{ devis.numero_devis }}%20d'un%20montant%20de%20{{ devis.total_ttc }}%20CFA.%20Lien:%20{{ request.build_absolute_uri }}.%20Votre%20commercial:%20{{ commercial_contact.nom }}{% if commercial_contact.telephone %}%20-%20Tel:%20{{ commercial_contact.telephone|cut:' '|cut:'-'|cut:'+' }}{% endif %}{% if commercial_contact.email %}%20-%20Email:%20{{ commercial_contact.email }}{% endif %}" target="_blank">
-                                💬 WhatsApp
+                                📧 Email indisponible
                             </a>
                         {% endif %}
                     </li>
