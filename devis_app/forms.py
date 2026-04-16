@@ -34,9 +34,22 @@ class DevisForm(forms.ModelForm):
         self.fields['nom_responsable'].widget.choices = get_responsables_choices()
 
 class LigneDevisForm(forms.ModelForm):
+    produit = forms.ModelChoiceField(
+        queryset=Produit.objects.all(),
+        required=False,
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+
     class Meta:
         model = LigneDevis
         fields = ['produit', 'quantite', 'unite', 'remise']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['produit'].queryset = Produit.objects.all().order_by('nom')
+        self.fields['produit'].label_from_instance = (
+            lambda obj: f"[{obj.code or 'SANS-CODE'}] {obj.nom} - Stock: {obj.stock} - {obj.prix} CFA"
+        )
 
 
 class ClientForm(forms.ModelForm):
@@ -48,10 +61,12 @@ class ClientForm(forms.ModelForm):
 class ProduitForm(forms.ModelForm):
     class Meta:
         model = Produit
-        fields = ['nom', 'prix', 'categorie']
+        fields = ['code', 'nom', 'prix', 'stock', 'categorie']
         widgets = {
+            'code': forms.TextInput(attrs={'class': 'form-control'}),
             'nom': forms.TextInput(attrs={'class': 'form-control'}),
             'prix': forms.NumberInput(attrs={'class': 'form-control'}),
+            'stock': forms.NumberInput(attrs={'class': 'form-control', 'min': '0'}),
             'categorie': forms.Select(attrs={'class': 'form-select'}),
         }
 

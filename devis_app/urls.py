@@ -28,8 +28,6 @@ urlpatterns = [
     path('historique/<int:historique_id>/voir/', views.voir_version_historique, name='voir_version_historique'),
     path("devis/<slug:slug>/export/pdf/", views.export_pdf, name="export_pdf"),
     path("devis/<slug:slug>/envoyer-email/", views.envoyer_devis_par_email, name="envoyer_devis_par_email"),
-    path('devis/<slug:slug>/export/word/', views.export_devis_word, name='export_devis_word'),
-    path('devis/<slug:slug>/export/excel/', views.export_devis_excel, name='export_devis_excel'),
 
     # ---- Matériels & Produits ----
     path('materiels/', views.liste_materiels, name='liste_materiels'),

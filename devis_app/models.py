@@ -57,12 +57,22 @@ class Categorie(models.Model):
 
 
 class Produit(models.Model):
+    code = models.CharField(max_length=50, unique=True, blank=True, null=True)
     nom = models.CharField(max_length=100)
     prix = models.DecimalField(max_digits=10, decimal_places=2)
+    stock = models.PositiveIntegerField(default=0)
     categorie = models.ForeignKey(Categorie, on_delete=models.CASCADE, null=True)
 
+    def save(self, *args, **kwargs):
+        if not self.code:
+            candidate = f"PRD-{get_random_string(8).upper()}"
+            while Produit.objects.filter(code=candidate).exists():
+                candidate = f"PRD-{get_random_string(8).upper()}"
+            self.code = candidate
+        super().save(*args, **kwargs)
+
     def __str__(self):
-        return self.nom
+        return f"[{self.code}] {self.nom}" if self.code else self.nom
 
 
 class Client(models.Model):

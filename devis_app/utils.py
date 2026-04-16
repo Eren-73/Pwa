@@ -15,8 +15,8 @@ def generate_qr_code(devis_slug):
     # Récupérer l'URL de base depuis les settings
     base_url = getattr(settings, 'SITE_URL', 'http://127.0.0.1:8000')
     
-    # Construire l'URL complète vers le devis
-    content = f"{base_url}/devis/template/{devis_slug}/"
+    # Construire l'URL complète vers la page de détail du devis
+    content = f"{base_url}/facture/{devis_slug}/"
 
     qr = qrcode.QRCode(
         version=1,

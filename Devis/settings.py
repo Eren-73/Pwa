@@ -24,6 +24,13 @@ def _split_csv_env(name, default_list):
     return [item.strip() for item in value.split(',') if item.strip()]
 
 
+def _bool_env(name, default=False):
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {'1', 'true', 'yes', 'on'}
+
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
@@ -32,6 +39,9 @@ SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'django-insecure-bm-^&9^9a&xauc!w4+2
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DJANGO_DEBUG', 'True').lower() == 'true'
+
+ADMIN_URL_PREFIX = os.getenv('ADMIN_URL_PREFIX', 'secure-admin/')
+ADMIN_ALLOWED_IPS = _split_csv_env('ADMIN_ALLOWED_IPS', ['127.0.0.1', '::1'])
 
 ALLOWED_HOSTS = _split_csv_env(
     'DJANGO_ALLOWED_HOSTS',
@@ -75,6 +85,7 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
+    'Devis.middleware.AdminIPWhitelistMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
@@ -199,12 +210,29 @@ LOGIN_REDIRECT_URL = 'dashboard'
 LOGOUT_REDIRECT_URL = 'login'
 
 # Email configuration
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'  # Pour développement - affiche dans console
-# Pour production, utilisez:
-# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-# EMAIL_HOST = 'smtp.gmail.com'  # ou votre serveur SMTP
-# EMAIL_PORT = 587
-# EMAIL_USE_TLS = True
-# EMAIL_HOST_USER = 'votre-email@gmail.com'
-# EMAIL_HOST_PASSWORD = 'votre-mot-de-passe'
-DEFAULT_FROM_EMAIL = 'info@pwaenergysolution.com'
+EMAIL_BACKEND = os.getenv(
+    'EMAIL_BACKEND',
+    'django.core.mail.backends.console.EmailBackend' if DEBUG else 'django.core.mail.backends.smtp.EmailBackend'
+)
+EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
+EMAIL_PORT = int(os.getenv('EMAIL_PORT', '587'))
+EMAIL_USE_TLS = _bool_env('EMAIL_USE_TLS', default=True)
+EMAIL_USE_SSL = _bool_env('EMAIL_USE_SSL', default=False)
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'info@pwaenergysolution.com')
+
+# Security hardening (env-driven)
+SESSION_COOKIE_HTTPONLY = True
+CSRF_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = os.getenv('DJANGO_SESSION_COOKIE_SAMESITE', 'Lax')
+CSRF_COOKIE_SAMESITE = os.getenv('DJANGO_CSRF_COOKIE_SAMESITE', 'Lax')
+SESSION_COOKIE_SECURE = _bool_env('DJANGO_SESSION_COOKIE_SECURE', default=(not DEBUG))
+CSRF_COOKIE_SECURE = _bool_env('DJANGO_CSRF_COOKIE_SECURE', default=(not DEBUG))
+SECURE_SSL_REDIRECT = _bool_env('DJANGO_SECURE_SSL_REDIRECT', default=False)
+SECURE_HSTS_SECONDS = int(os.getenv('DJANGO_HSTS_SECONDS', '0'))
+SECURE_HSTS_INCLUDE_SUBDOMAINS = _bool_env('DJANGO_HSTS_INCLUDE_SUBDOMAINS', default=False)
+SECURE_HSTS_PRELOAD = _bool_env('DJANGO_HSTS_PRELOAD', default=False)
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_REFERRER_POLICY = 'same-origin'
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')

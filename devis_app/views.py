@@ -14,6 +14,7 @@ from django.contrib.auth.models import User
 from django.utils import timezone
 from django.db.models import Count
 from django.db.models import Q
+from django.db import transaction
 from .models import Devis, Profile
 import weasyprint
 import openpyxl
@@ -24,6 +25,9 @@ from .forms import CommercialCreateForm
 from .models import ActionCommercial
 import os
 import io
+import re
+from urllib.parse import quote
+from collections import defaultdict
 from django.core.mail import EmailMessage
 
 
@@ -92,6 +96,42 @@ def _deletable_devis_queryset(user):
     return base_qs.filter(utilisateur=user)
 
 
+def _can_modify_devis(user, devis):
+    """Retourne True si l'utilisateur peut modifier ce devis."""
+    if not user.is_authenticated:
+        return False
+    if _can_view_global(user):
+        return True
+    return devis.utilisateur_id == user.id
+
+
+def _commercial_contact_for_devis(devis):
+    """Retourne les informations de contact du commercial lié au devis."""
+    if not devis.utilisateur:
+        return {
+            'name': 'PWA Energy Solution',
+            'email': settings.DEFAULT_FROM_EMAIL,
+            'phone': '',
+        }
+
+    profile = getattr(devis.utilisateur, 'profile', None)
+    full_name = f"{devis.utilisateur.first_name} {devis.utilisateur.last_name}".strip() or devis.utilisateur.username
+    phone = (getattr(profile, 'telephone', '') or '').strip()
+
+    return {
+        'name': full_name,
+        'email': (devis.utilisateur.email or settings.DEFAULT_FROM_EMAIL).strip(),
+        'phone': phone,
+    }
+
+
+def _whatsapp_phone(value):
+    """Normalise un numéro de téléphone pour wa.me (digits only)."""
+    if not value:
+        return ''
+    return re.sub(r'\D+', '', value)
+
+
 def _scoped_clients_queryset(user):
     if not user.is_authenticated:
         return Client.objects.none()
@@ -112,6 +152,9 @@ def creer_devis(request, slug=None):
 
     if slug:
         devis_existant = get_object_or_404(_scoped_devis_queryset(request.user), slug=slug)
+        if not _can_modify_devis(request.user, devis_existant):
+            messages.error(request, "Vous n'avez pas le droit de modifier ce devis.")
+            return redirect('dashboard')
     
     LigneDevisFormSet = modelformset_factory(
         LigneDevis, form=LigneDevisForm, extra=3 if slug else 0, can_delete=True
@@ -184,32 +227,101 @@ def creer_devis(request, slug=None):
             devis_form.fields['point_vente'].queryset = PointVente.objects.filter(pk=user_point_vente.pk)
 
         if devis_form.is_valid() and formset.is_valid():
-            devis = devis_form.save(commit=False)
-            
-            if not slug:
-                # 🔹 Lier le devis à l'utilisateur connecté (commercial)
-                devis.utilisateur = request.user
+            try:
+                with transaction.atomic():
+                    devis = devis_form.save(commit=False)
 
-            # Les commerciaux restent dans leur point de vente
-            if not user_can_view_global and user_point_vente:
-                devis.point_vente = user_point_vente
+                    if not slug:
+                        # 🔹 Lier le devis à l'utilisateur connecté (commercial)
+                        devis.utilisateur = request.user
 
-            # ✅ Vérifier si TVA doit être appliquée
-            apply_tva = request.POST.get("apply_tva", "yes")
-            devis.appliquer_tva = (apply_tva == "yes")
+                    # Les commerciaux restent dans leur point de vente
+                    if not user_can_view_global and user_point_vente:
+                        devis.point_vente = user_point_vente
 
-            devis.save()
+                    # ✅ Vérifier si TVA doit être appliquée
+                    apply_tva = request.POST.get("apply_tva", "yes")
+                    devis.appliquer_tva = (apply_tva == "yes")
 
-            # Supprimer anciennes lignes si modification
-            if slug:
-                devis.lignes.all().delete()
+                    devis.save()
 
-            # ✅ Enregistrer chaque ligne
-            for form in formset:
-                if form.cleaned_data and not form.cleaned_data.get('DELETE', False):
-                    ligne = form.save(commit=False)
-                    ligne.devis = devis
-                    ligne.save()
+                    # Stock: préparer les quantités demandées sur le nouveau formset
+                    requested_by_product = defaultdict(int)
+                    kept_forms = []
+                    for form in formset:
+                        if not form.cleaned_data or form.cleaned_data.get('DELETE', False):
+                            continue
+
+                        produit = form.cleaned_data.get('produit')
+                        quantite = int(form.cleaned_data.get('quantite') or 0)
+                        if not produit:
+                            continue
+                        if quantite <= 0:
+                            raise ValueError(f"Quantité invalide pour {produit.nom}.")
+
+                        requested_by_product[produit.id] += quantite
+                        kept_forms.append(form)
+
+                    # Stock: récupérer les anciennes quantités en mode modification
+                    previous_by_product = defaultdict(int)
+                    if slug:
+                        for old_line in devis_existant.lignes.select_related('produit'):
+                            if old_line.produit_id:
+                                previous_by_product[old_line.produit_id] += int(old_line.quantite)
+
+                    involved_product_ids = set(requested_by_product.keys()) | set(previous_by_product.keys())
+                    locked_products = {
+                        p.id: p
+                        for p in Produit.objects.select_for_update().filter(id__in=involved_product_ids)
+                    }
+
+                    # Validation stock avant toute écriture définitive
+                    for product_id, requested_qty in requested_by_product.items():
+                        product = locked_products.get(product_id)
+                        if not product:
+                            continue
+                        available = int(product.stock) + int(previous_by_product.get(product_id, 0))
+                        if requested_qty > available:
+                            raise ValueError(
+                                f"Stock insuffisant pour {product.nom}: demandé {requested_qty}, disponible {available}."
+                            )
+
+                    # En modification: restituer l'ancien stock puis supprimer les anciennes lignes
+                    if slug:
+                        for product_id, previous_qty in previous_by_product.items():
+                            product = locked_products.get(product_id)
+                            if product:
+                                product.stock = int(product.stock) + int(previous_qty)
+                                product.save(update_fields=['stock'])
+                        devis.lignes.all().delete()
+
+                    # Appliquer le nouveau stock (décrément)
+                    for product_id, requested_qty in requested_by_product.items():
+                        product = locked_products.get(product_id)
+                        if product:
+                            product.stock = int(product.stock) - int(requested_qty)
+                            product.save(update_fields=['stock'])
+
+                    # ✅ Enregistrer chaque ligne
+                    for form in kept_forms:
+                        ligne = form.save(commit=False)
+                        ligne.devis = devis
+                        ligne.save()
+            except ValueError as stock_error:
+                messages.error(request, str(stock_error))
+                if slug:
+                    devis_form = DevisForm(request.POST, request.FILES, instance=devis_existant)
+                    formset = LigneDevisFormSet(request.POST, queryset=devis_existant.lignes.all())
+                else:
+                    devis_form = DevisForm(request.POST, request.FILES)
+                    formset = LigneDevisFormSet(request.POST, queryset=LigneDevis.objects.none())
+                return render(request, 'devis/creer_devis.html', {
+                    'devis_form': devis_form,
+                    'formset': formset,
+                    'nombre_devis': Devis.objects.filter(utilisateur=request.user).count(),
+                    'mode_modification': slug is not None,
+                    'devis': devis_existant if slug else None,
+                })
 
             if slug:
                 # Enregistrer dans l'historique
@@ -269,11 +381,29 @@ def creer_devis(request, slug=None):
 def devis_template(request, slug):
     devis = get_object_or_404(Devis, slug=slug)
     lignes = devis.lignes.all()
+    can_modify_devis = _can_modify_devis(request.user, devis)
+    commercial_contact = _commercial_contact_for_devis(devis)
+    whatsapp_url = ''
+
+    client_phone = _whatsapp_phone(getattr(devis.client, 'telephone', ''))
+    if client_phone:
+        message = (
+            f"Bonjour {devis.client.prenom} {devis.client.nom}, "
+            f"voici votre devis N° {devis.numero_devis} (Total TTC: {devis.total_ttc} CFA). "
+            f"Consultez-le ici: {request.build_absolute_uri()} "
+            f"Contact commercial: {commercial_contact['name']}"
+        )
+        if commercial_contact['phone']:
+            message += f" - WhatsApp: {commercial_contact['phone']}"
+        whatsapp_url = f"https://wa.me/{client_phone}?text={quote(message)}"
 
     return render(request, 'devis/devis_template.html', {
         'devis': devis,
         'lignes': lignes,
         'qr_code_url': request.build_absolute_uri(devis.qr_code.url) if devis.qr_code else None,
+        'can_modify_devis': can_modify_devis,
+        'commercial_contact': commercial_contact,
+        'whatsapp_url': whatsapp_url,
     })
 
 @login_required(login_url='login')
@@ -622,6 +752,7 @@ def envoyer_devis_par_email(request, slug):
     """
     devis = get_object_or_404(_scoped_devis_queryset(request.user), slug=slug)
     lignes = devis.lignes.all()
+    commercial_contact = _commercial_contact_for_devis(devis)
     
     # Vérifier si le client a un email
     if not devis.client or not devis.client.email:
@@ -652,6 +783,10 @@ Détails du devis:
 
 N'hésitez pas à nous contacter pour toute question.
 
+Commercial: {commercial_contact['name']}
+Email: {commercial_contact['email']}
+Téléphone/WhatsApp: {commercial_contact['phone'] or 'Non renseigné'}
+
 Cordialement,
 PWA Energy Solution
 """
@@ -660,8 +795,10 @@ PWA Energy Solution
     email = EmailMessage(
         subject=sujet,
         body=message,
+        # SMTP gratuit: utiliser un expéditeur unique vérifié, puis répondre au commercial.
         from_email=settings.DEFAULT_FROM_EMAIL,
         to=[devis.client.email],
+        reply_to=[commercial_contact['email']] if commercial_contact['email'] else [],
     )
     
     # Attacher le PDF
@@ -912,7 +1049,7 @@ def ajouter_produit(request):
             return redirect('liste_materiels')
     else:
         form = ProduitForm()
-    return render(request, 'modifier_produit.html', {'form': form})
+    return render(request, 'produits/modifier_produit.html', {'form': form})
 
 
 @login_required(login_url='login')
@@ -925,7 +1062,7 @@ def modifier_produit(request, produit_id):
             return redirect('liste_materiels')
     else:
         form = ProduitForm(instance=produit)
-    return render(request, 'modifier_produit.html', {'form': form, 'produit': produit})
+    return render(request, 'produits/modifier_produit.html', {'form': form, 'produit': produit})
 
 
 @login_required(login_url='login')
@@ -951,46 +1088,23 @@ def ajouter_categorie(request):
 
 @login_required(login_url='login')
 def export_pdf(request, slug):
-    """Export the devis to PDF using WeasyPrint with proper image handling."""
+    """Exporte le devis en PDF avec le même template que l'écran."""
     devis = get_object_or_404(_scoped_devis_queryset(request.user), slug=slug)
     lignes = devis.lignes.all()
-    
-    # Get the absolute URL for media files
-    if request.is_secure():
-        protocol = 'https'
-    else:
-        protocol = 'http'
-    base_url = f"{protocol}://{request.get_host()}"
-    
-    # Prepare context with absolute URLs
+
+    commercial_contact = _commercial_contact_for_devis(devis)
     context = {
         'devis': devis,
         'lignes': lignes,
-        'MEDIA_URL': settings.MEDIA_URL,
-        'STATIC_URL': settings.STATIC_URL,
-        'base_url': base_url,
         'qr_code_url': request.build_absolute_uri(devis.qr_code.url) if devis.qr_code else None,
-        'logo_url': request.build_absolute_uri(settings.STATIC_URL + 'images/logo.png')
+        'is_pdf': True,
+        'commercial_contact': commercial_contact,
     }
-    
-    # Render the template with the full context
-    html = render_to_string('devis_template.html', context)
+
+    html = render_to_string('devis/devis_template.html', context, request=request)
     
     try:
-        # Configure WeasyPrint with proper media handling
-        base_url = request.build_absolute_uri('/')
-        pdf = weasyprint.HTML(
-            string=html,
-            base_url=base_url,
-            url_fetcher=weasyprint.default_url_fetcher
-        ).write_pdf(
-            stylesheets=[
-                weasyprint.CSS(string="""
-                    @page { size: A4; margin: 1cm; }
-                    body { font-family: Arial, sans-serif; }
-                """)
-            ]
-        )
+        pdf = weasyprint.HTML(string=html, base_url=request.build_absolute_uri('/')).write_pdf()
         
         response = HttpResponse(pdf, content_type='application/pdf')
         response['Content-Disposition'] = f'attachment; filename="devis_{devis.numero_devis}.pdf"'

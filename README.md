@@ -56,5 +56,32 @@ Pré-requis serveurs:
 - Le script `/var/www/devis/Pwa/scripts/deploy_docker.sh` doit être exécutable.
 - L'utilisateur SSH doit pouvoir exécuter Docker Compose sans prompt interactif.
 
+## Deploiement manuel sans GitHub Actions
+
+Si GitHub Actions est indisponible (ex: billing lock), deploye directement le Site A depuis ton PC Windows:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\deploy_two_sites.ps1
+```
+
+Le script te demandera interactifement:
+- IP/DNS Site A
+- User SSH Site A par defaut: `pwa`
+- Chemin de la cle SSH (uniquement si la cle par defaut est introuvable)
+
+Tu peux aussi passer les valeurs en arguments:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\deploy_two_sites.ps1 `
+  -SiteAHost "IP_OU_DNS_SITE_A" -SiteAUser "pwa" `
+  -KeyPath "$HOME/.ssh/id_ed25519"
+```
+
+Ce script execute en SSH la commande suivante sur chaque serveur:
+
+```bash
+cd /var/www/devis/Pwa && bash scripts/deploy_docker.sh
+```
+
 
 
