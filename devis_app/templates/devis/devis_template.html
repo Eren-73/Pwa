@@ -80,25 +80,26 @@
         
         body {
             font-family: Arial, Helvetica, sans-serif;
-            font-size: 12px;
+            font-size: 13px;
             color: var(--text-color);
             margin: 0;
             background: var(--bg-color);
-            line-height: 1.35;
+            line-height: 1.45;
         }
         .page {
             width: 210mm;
             min-height: 297mm;
             margin: 0 auto;
-            padding: 8mm 12mm;
+            padding: 10mm 14mm;
             box-sizing: border-box;
             background: var(--card-bg);
         }
         .top-buttons {
             display: flex;
             justify-content: flex-start;
-            gap: 10px;
-            margin-bottom: 14px;
+            gap: 12px;
+            margin-bottom: 18px;
+            flex-wrap: wrap;
         }
         .top-buttons button, .top-buttons .dropdown-toggle {
             padding: 6px 14px;
@@ -119,8 +120,8 @@
             justify-content: space-between;
             align-items: center;
             border-bottom: 4px solid var(--text-color);
-            padding-bottom: 12px;
-            margin-bottom: 8px;
+            padding-bottom: 14px;
+            margin-bottom: 12px;
         }
         .header-text {
             font-size: 11px;
@@ -134,37 +135,37 @@
             width: auto;
         }
         .doc-info {
-            margin-top: 10px;
+            margin-top: 12px;
             background: var(--text-color);
             color: var(--card-bg);
             display: grid;
             grid-template-columns: 1fr 1fr;
-            padding: 10px 14px;
+            padding: 12px 16px;
             font-size: 14px;
             font-weight: bold;
         }
         .doc-info div:last-child { text-align: right; }
         .parties {
             display: flex;
-            gap: 20px;
-            margin-top: 14px;
+            gap: 24px;
+            margin-top: 18px;
             align-items: flex-start;
             justify-content: space-between;
         }
         .box {
             border: 1px solid var(--border-color);
-            padding: 10px;
-            min-height: 120px;
+            padding: 12px;
+            min-height: 130px;
             height: auto;
             flex: 1;
-            line-height: 1.3;
+            line-height: 1.45;
             background-color: var(--card-bg);
             max-width: calc(40% - 10px);
             box-sizing: border-box;
-            font-size: 10px;
+            font-size: 11px;
         }
         .box p {
-            margin: 4px 0;
+            margin: 6px 0;
             display: flex;
         }
         .box p strong {
@@ -198,7 +199,7 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            margin-left: 20px;
+            margin-left: 18px;
             flex: 0 0 120px;
         }
         .qr-wrapper img {
@@ -220,16 +221,16 @@
         .info-block {
             display: flex;
             justify-content: space-between;
-            margin-top: 14px;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 18px;
             background-color: #f0f0f0;
-            padding: 10px 14px;
+            padding: 12px 14px;
         }
         .info-block p {
-            margin: 0 15px;
-        }
-        table th[style*="padding: 6px"],
-        table td[style*="padding: 6px"] {
-            padding: 8px !important;
+            margin: 0;
+            font-size: 12px;
+            line-height: 1.4;
         }
         
         @media print{
@@ -410,7 +411,9 @@
             <button onclick="window.history.back()">⬅ Retour</button>
             <a href="{% url 'dashboard' %}" class="btn" style="padding: 6px 14px; font-size: 13px; text-decoration: none; display: inline-block;">🚪 Quitter</a>
             <button onclick="window.print()">🖨 Imprimer</button>
+            {% if can_modify_devis %}
             <a href="{% url 'modifier_devis_v2' devis.slug %}" class="btn" style="padding: 6px 14px; font-size: 13px; text-decoration: none; display: inline-block;">✏️ Modifier</a>
+            {% endif %}
             <a href="{% url 'historique_devis' devis.slug %}" class="btn" style="padding: 6px 14px; font-size: 13px; text-decoration: none; display: inline-block;">📜 Historique</a>
 
             <!-- Dropdown Exporter -->
@@ -420,8 +423,6 @@
                 </button>
                 <ul class="dropdown-menu">
                     <li><a class="dropdown-item" href="{% url 'export_pdf' devis.slug %}">PDF</a></li>
-                    <li><a class="dropdown-item" href="{% url 'export_devis_word' devis.slug %}">Word</a></li>
-                    <li><a class="dropdown-item" href="{% url 'export_devis_excel' devis.slug %}">Excel</a></li>
                 </ul>
             </div>
 
@@ -439,6 +440,17 @@
                         {% else %}
                             <a class="dropdown-item" href="#" onclick="alert('Le client n\'a pas d\'adresse email.'); return false;">
                                 📧 Email indisponible
+                            </a>
+                        {% endif %}
+                    </li>
+                    <li>
+                        {% if whatsapp_url %}
+                            <a class="dropdown-item" href="{{ whatsapp_url }}" target="_blank" rel="noopener noreferrer">
+                                💬 Envoyer par WhatsApp
+                            </a>
+                        {% else %}
+                            <a class="dropdown-item" href="#" onclick="alert('Le client n\'a pas de numéro de téléphone.'); return false;">
+                                💬 WhatsApp indisponible
                             </a>
                         {% endif %}
                     </li>

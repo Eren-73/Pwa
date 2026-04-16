@@ -4,12 +4,12 @@
 
 {% block content %}
 <div class="container-fluid">
-  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
       <h1 class="mb-0">📄 Dashboard Devis</h1>
 
   </div>
 
-    <div class="alert alert-light border mb-3">
+        <div class="alert alert-light border mb-4 py-3">
             <strong>Rôle:</strong> {{ role_label }}
             {% if can_view_global %}
                 <span class="badge bg-primary ms-2">Vue inter points de vente</span>
@@ -20,7 +20,7 @@
 
 
   <!-- Actions desktop -->
-  <div class="d-none d-md-flex justify-content-start mb-4 gap-2">
+    <div class="d-none d-md-flex justify-content-start mb-4 gap-3 flex-wrap">
       <a href="{% url 'creer_devis' %}" class="btn btn-primary">➕ Créer un devis</a>
       {% if can_delete_devis %}
       <button type="button" id="btnSupprimerSelection" class="btn btn-danger" style="display:none;" data-bs-toggle="modal" data-bs-target="#confirmDeleteModal">
@@ -30,7 +30,7 @@
   </div>
 
   <!-- Filtre par date + recherche -->
-  <form method="get" class="row g-2 mb-4">
+    <form method="get" class="row g-3 mb-4 align-items-end">
       <div class="col-12 col-md-4">
           <input type="text" name="q" class="form-control" placeholder="Recherche devis, client, point de vente..." value="{{ q|default:'' }}">
       </div>
@@ -48,15 +48,15 @@
   <!-- Liste des devis -->
   <div class="row" id="devisContainer">
       {% for devis in devis_list %}
-      <div class="col-12 col-sm-6 col-md-4 mb-3 devis-card" data-id="{{ devis.id }}">
-          <div class="card card-devis shadow-sm position-relative p-2">
+      <div class="col-12 col-sm-6 col-md-4 mb-4 devis-card" data-id="{{ devis.id }}">
+          <div class="card card-devis shadow-sm position-relative p-3 h-100">
                             {% if devis.can_delete %}
               <div class="form-check position-absolute top-0 end-0 m-2">
                   <input type="checkbox" name="devis_ids" value="{{ devis.id }}" class="form-check-input check-devis" id="devis{{ devis.id }}">
               </div>
                             {% endif %}
-              <div class="card-body mt-2">
-                                    <h2 class="card-title fs-5">Devis n° {{ devis.numero_devis }}</h2>
+              <div class="card-body mt-2 py-2 px-1">
+                                    <h2 class="card-title fs-5 mb-3">Devis n° {{ devis.numero_devis }}</h2>
                   <p class="card-text small">
                       <strong>Client :</strong> {{ devis.client }}<br>
                                             <strong>Point de vente :</strong>
