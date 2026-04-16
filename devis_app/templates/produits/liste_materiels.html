@@ -6,7 +6,7 @@
 <div class="container-fluid px-0 px-md-2 py-2">
 <h1 class="mb-4">Liste des matériels par catégorie</h1>
 
-<div class="mb-4 d-flex gap-3 flex-wrap">
+<div class="mb-4 d-flex gap-3 flex-wrap bulk-toolbar">
     <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalAjouterCategorie">➕ Ajouter une catégorie</button>
     <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalAjouterProduit">➕ Ajouter un produit</button>
     <div class="form-check d-flex align-items-center m-0 ms-md-2">
@@ -151,11 +151,21 @@
   gap: 12px;
 }
 
-.mb-4.d-flex.gap-3.flex-wrap {
-  padding: 0.75rem 1rem;
-  border: 1px solid #e9ecef;
+.bulk-toolbar {
+  padding: 0.85rem 1rem;
+  border: 1px solid #dbe3ea;
   border-radius: 0.75rem;
-  background: #f8f9fa;
+  background: #f8fafc;
+}
+
+@media (max-width: 768px) {
+  .action-buttons {
+    opacity: 1;
+    margin-top: 0.7rem;
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
 }
 </style>
 
