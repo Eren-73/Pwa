@@ -132,6 +132,10 @@ def _whatsapp_phone(value):
     return re.sub(r'\D+', '', value)
 
 
+def _is_ajax_request(request):
+    return request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+
+
 def _scoped_clients_queryset(user):
     if not user.is_authenticated:
         return Client.objects.none()
@@ -543,12 +547,17 @@ def modifier_client(request, slug):
 @login_required(login_url='login')
 def supprimer_client(request, slug):
     if not _is_admin_user(request.user):
+        if _is_ajax_request(request):
+            return JsonResponse({"success": False, "error": "Accès non autorisé."}, status=403)
         messages.error(request, "Accès non autorisé.")
         return redirect('liste_clients')
 
     client = get_object_or_404(_scoped_clients_queryset(request.user), slug=slug)
     if request.method == 'POST':
+        client_nom = str(client)
         client.delete()
+        if _is_ajax_request(request):
+            return JsonResponse({"success": True, "deleted": client_nom})
         return redirect('/clients/?deleted=1')
     return render(request, 'supprimer_client.html', {'client': client})
 
@@ -1099,7 +1108,10 @@ def modifier_produit(request, produit_id):
 def supprimer_produit(request, produit_id):
     produit = get_object_or_404(Produit, id=produit_id)
     if request.method == 'POST':
+        produit_nom = produit.nom
         produit.delete()
+        if _is_ajax_request(request):
+            return JsonResponse({"success": True, "deleted": produit_nom})
         return redirect('liste_materiels')
     return render(request, 'supprimer_produit.html', {'produit': produit})
 
@@ -1243,6 +1255,8 @@ def supprimer_point_vente(request, pk):
     Supprimer un point de vente.
     """
     if not _is_admin_user(request.user):
+        if _is_ajax_request(request):
+            return JsonResponse({"success": False, "error": "Accès non autorisé."}, status=403)
         messages.error(request, "Accès non autorisé.")
         return redirect('dashboard')
 
@@ -1251,6 +1265,8 @@ def supprimer_point_vente(request, pk):
     if request.method == 'POST':
         nom = point_vente.nom
         point_vente.delete()
+        if _is_ajax_request(request):
+            return JsonResponse({"success": True, "deleted": nom})
         messages.success(request, f"Point de vente '{nom}' supprimé avec succès!")
         return redirect('liste_point_ventes')
     
@@ -1403,7 +1419,10 @@ def liste_commerciaux(request):
         return redirect('dashboard')
     
     commerciaux = User.objects.filter(profile__role='commercial').select_related('profile', 'profile__point_vente').prefetch_related('devis')
-    response = render(request, 'commercial/liste_commerciaux.html', {'commerciaux': commerciaux})
+    response = render(request, 'commercial/liste_commerciaux.html', {
+        'commerciaux': commerciaux,
+        'is_admin_user': _is_admin_user(request.user),
+    })
     # Désactiver le cache pour éviter les problèmes d'affichage
     response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
     response['Pragma'] = 'no-cache'
@@ -1466,6 +1485,8 @@ def modifier_commercial(request, user_id):
 def supprimer_commercial(request, user_id):
     """Permet à l'admin de supprimer un commercial."""
     if not _is_admin_user(request.user):
+        if _is_ajax_request(request):
+            return JsonResponse({"success": False, "error": "Accès non autorisé."}, status=403)
         messages.error(request, "Accès non autorisé.")
         return redirect('dashboard')
     
@@ -1474,6 +1495,8 @@ def supprimer_commercial(request, user_id):
     if request.method == 'POST':
         username = user.username
         user.delete()
+        if _is_ajax_request(request):
+            return JsonResponse({"success": True, "deleted": username})
         messages.success(request, f"Commercial {username} supprimé avec succès.")
         return redirect('liste_commerciaux?deleted=1')
     

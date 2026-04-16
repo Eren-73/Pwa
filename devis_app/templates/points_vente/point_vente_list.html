@@ -3,9 +3,17 @@
 
 {% block content %}
 <div class="container py-4">
-  <div class="d-flex justify-content-between align-items-center mb-3">
+  <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
     <h2 class="m-0">Points de vente</h2>
     <a href="{% url 'ajouter_point_vente' %}" class="btn btn-sm btn-primary">Ajouter un point de vente</a>
+  </div>
+
+  <div class="d-flex flex-wrap align-items-center gap-3 mb-3 bulk-toolbar">
+    <div class="form-check m-0">
+      <input class="form-check-input" type="checkbox" id="selectAllPointsVente">
+      <label class="form-check-label" for="selectAllPointsVente">Tout sélectionner</label>
+    </div>
+    <button type="button" class="btn btn-sm btn-danger" id="btnDeleteSelectedPoints" style="display:none;">🗑 Supprimer la sélection</button>
   </div>
 
   {% if points %}
@@ -13,6 +21,7 @@
       <table class="table table-sm table-striped">
         <thead>
           <tr>
+            <th class="text-center" style="width: 48px;"></th>
             <th>Nom</th>
             <th>Adresse</th>
             <th>Téléphone</th>
@@ -22,6 +31,9 @@
         <tbody>
           {% for p in points %}
             <tr>
+              <td class="text-center">
+                <input type="checkbox" class="form-check-input check-point" value="{{ p.pk }}" aria-label="Sélectionner {{ p.nom }}">
+              </td>
               <td>{{ p.nom }}</td>
               <td>{{ p.adresse }}</td>
               <td>{{ p.telephone }}</td>
@@ -38,4 +50,108 @@
     <p class="text-muted">Aucun point de vente trouvé.</p>
   {% endif %}
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const selectAllPoints = document.getElementById('selectAllPointsVente');
+  const btnDeleteSelectedPoints = document.getElementById('btnDeleteSelectedPoints');
+
+  function getCsrfToken() {
+    let cookieValue = null;
+    const cookies = document.cookie ? document.cookie.split(';') : [];
+    cookies.forEach(cookie => {
+      const c = cookie.trim();
+      if (c.startsWith('csrftoken=')) {
+        cookieValue = decodeURIComponent(c.substring('csrftoken='.length));
+      }
+    });
+    return cookieValue;
+  }
+
+  function getPointCheckboxes() {
+    return Array.from(document.querySelectorAll('.check-point'));
+  }
+
+  function syncBulkPointsState() {
+    const checkboxes = getPointCheckboxes();
+    const checkedCount = checkboxes.filter(chk => chk.checked).length;
+    if (selectAllPoints) {
+      selectAllPoints.checked = checkboxes.length > 0 && checkedCount === checkboxes.length;
+      selectAllPoints.disabled = checkboxes.length === 0;
+    }
+    if (btnDeleteSelectedPoints) {
+      btnDeleteSelectedPoints.style.display = checkedCount > 0 ? 'inline-block' : 'none';
+    }
+  }
+
+  if (selectAllPoints) {
+    selectAllPoints.addEventListener('change', function () {
+      getPointCheckboxes().forEach(chk => {
+        chk.checked = this.checked;
+      });
+      syncBulkPointsState();
+    });
+  }
+
+  getPointCheckboxes().forEach(chk => {
+    chk.addEventListener('change', syncBulkPointsState);
+  });
+
+  if (btnDeleteSelectedPoints) {
+    btnDeleteSelectedPoints.addEventListener('click', async function () {
+      const selected = getPointCheckboxes().filter(chk => chk.checked).map(chk => chk.value);
+      if (!selected.length) {
+        alert('Aucun point de vente sélectionné.');
+        return;
+      }
+      if (!confirm(`Supprimer ${selected.length} point(s) de vente sélectionné(s) ?`)) {
+        return;
+      }
+
+      const csrfToken = getCsrfToken();
+      const failures = [];
+
+      for (const id of selected) {
+        try {
+          const response = await fetch(`/points-vente/supprimer/${id}/`, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+              'X-CSRFToken': csrfToken,
+              'X-Requested-With': 'XMLHttpRequest'
+            }
+          });
+          if (!response.ok) {
+            failures.push(id);
+            continue;
+          }
+          const row = document.querySelector(`.check-point[value="${id}"]`)?.closest('tr');
+          if (row) {
+            row.remove();
+          }
+        } catch (e) {
+          failures.push(id);
+        }
+      }
+
+      syncBulkPointsState();
+
+      if (failures.length > 0) {
+        alert(`${failures.length} suppression(s) ont échoué.`);
+      }
+    });
+  }
+
+  syncBulkPointsState();
+});
+</script>
+
+<style>
+.bulk-toolbar {
+  padding: 0.6rem 0.9rem;
+  border: 1px solid #e9ecef;
+  border-radius: 0.75rem;
+  background: #f8f9fa;
+}
+</style>
 {% endblock %}

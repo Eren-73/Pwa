@@ -38,10 +38,22 @@
     <div class="card shadow-sm">
         <div class="card-body p-0">
             {% if responsables %}
+                <div class="d-flex flex-wrap align-items-center gap-3 p-3 bulk-toolbar">
+                    <div class="form-check m-0">
+                        <input class="form-check-input" type="checkbox" id="selectAllResponsables">
+                        <label class="form-check-label" for="selectAllResponsables">Tout sélectionner</label>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-danger" id="btnDeleteSelectedResponsables" style="display:none;">
+                        Supprimer la sélection
+                    </button>
+                </div>
                 <ul class="list-group list-group-flush">
                     {% for r in responsables %}
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <span><i class="bi bi-person me-2 text-primary"></i>{{ r.nom }}</span>
+                    <li class="list-group-item d-flex justify-content-between align-items-center" data-responsable-id="{{ r.pk }}">
+                        <span>
+                            <input type="checkbox" class="form-check-input me-2 check-responsable" value="{{ r.pk }}" aria-label="Sélectionner {{ r.nom }}">
+                            <i class="bi bi-person me-2 text-primary"></i>{{ r.nom }}
+                        </span>
                         <form method="post" action="{% url 'supprimer_responsable' r.pk %}" onsubmit="return confirm('Supprimer {{ r.nom }} ?');">
                             {% csrf_token %}
                             <button type="submit" class="btn btn-outline-danger btn-sm">
@@ -57,4 +69,107 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const selectAllResponsables = document.getElementById('selectAllResponsables');
+    const btnDeleteSelectedResponsables = document.getElementById('btnDeleteSelectedResponsables');
+
+    function getCsrfToken() {
+        let cookieValue = null;
+        const cookies = document.cookie ? document.cookie.split(';') : [];
+        cookies.forEach(cookie => {
+            const c = cookie.trim();
+            if (c.startsWith('csrftoken=')) {
+                cookieValue = decodeURIComponent(c.substring('csrftoken='.length));
+            }
+        });
+        return cookieValue;
+    }
+
+    function getResponsableCheckboxes() {
+        return Array.from(document.querySelectorAll('.check-responsable'));
+    }
+
+    function syncBulkResponsablesState() {
+        const checkboxes = getResponsableCheckboxes();
+        const checkedCount = checkboxes.filter(chk => chk.checked).length;
+        if (selectAllResponsables) {
+            selectAllResponsables.checked = checkboxes.length > 0 && checkedCount === checkboxes.length;
+            selectAllResponsables.disabled = checkboxes.length === 0;
+        }
+        if (btnDeleteSelectedResponsables) {
+            btnDeleteSelectedResponsables.style.display = checkedCount > 0 ? 'inline-block' : 'none';
+        }
+    }
+
+    if (selectAllResponsables) {
+        selectAllResponsables.addEventListener('change', function () {
+            const checked = this.checked;
+            getResponsableCheckboxes().forEach(chk => {
+                chk.checked = checked;
+            });
+            syncBulkResponsablesState();
+        });
+    }
+
+    getResponsableCheckboxes().forEach(chk => {
+        chk.addEventListener('change', syncBulkResponsablesState);
+    });
+
+    if (btnDeleteSelectedResponsables) {
+        btnDeleteSelectedResponsables.addEventListener('click', async function () {
+            const selected = getResponsableCheckboxes().filter(chk => chk.checked).map(chk => chk.value);
+            if (!selected.length) {
+                alert('Aucun responsable sélectionné.');
+                return;
+            }
+            if (!confirm(`Supprimer ${selected.length} responsable(s) sélectionné(s) ?`)) {
+                return;
+            }
+
+            const csrfToken = getCsrfToken();
+            const failures = [];
+
+            for (const id of selected) {
+                try {
+                    const response = await fetch(`/responsables/supprimer/${id}/`, {
+                        method: 'POST',
+                        credentials: 'same-origin',
+                        headers: {
+                            'X-CSRFToken': csrfToken,
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    });
+                    if (!response.ok) {
+                        failures.push(id);
+                        continue;
+                    }
+                    const row = document.querySelector(`li[data-responsable-id="${id}"]`);
+                    if (row) {
+                        row.remove();
+                    }
+                } catch (e) {
+                    failures.push(id);
+                }
+            }
+
+            syncBulkResponsablesState();
+
+            if (failures.length > 0) {
+                alert(`${failures.length} suppression(s) ont échoué.`);
+            }
+        });
+    }
+
+    syncBulkResponsablesState();
+});
+</script>
+
+<style>
+.bulk-toolbar {
+    border-bottom: 1px solid #e9ecef;
+    background: #f8f9fa;
+}
+</style>
 {% endblock %}

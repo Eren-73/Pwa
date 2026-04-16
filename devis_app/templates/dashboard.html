@@ -19,8 +19,8 @@
     </div>
 
 
-  <!-- Actions desktop -->
-    <div class="d-none d-md-flex justify-content-start mb-4 gap-3 flex-wrap">
+    <!-- Actions suppression -->
+        <div class="d-flex justify-content-start mb-4 gap-3 flex-wrap bulk-actions-bar">
       <a href="{% url 'creer_devis' %}" class="btn btn-primary">➕ Créer un devis</a>
       {% if can_delete_devis %}
       <div class="form-check d-flex align-items-center ms-1 mt-2 mt-md-0">
@@ -121,6 +121,13 @@
 }
 .card-devis:hover {
   transform: scale(1.02);
+}
+
+.bulk-actions-bar {
+        padding: 0.8rem 1rem;
+        border: 1px solid #e9ecef;
+        border-radius: 0.75rem;
+        background: #f8f9fa;
 }
 
 /* Sidebar classique masquée sur mobile */

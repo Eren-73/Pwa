@@ -15,11 +15,28 @@
     </a>
 </div>
 
+  {% if is_admin_user %}
+  <div class="d-flex flex-wrap align-items-center justify-content-center gap-3 mb-4 bulk-toolbar">
+    <div class="form-check m-0">
+      <input class="form-check-input" type="checkbox" id="selectAllCommerciaux">
+      <label class="form-check-label" for="selectAllCommerciaux">Tout sélectionner</label>
+    </div>
+    <button type="button" class="btn btn-danger" id="btnDeleteSelectedCommerciaux" style="display:none;">
+      🗑 Supprimer la sélection
+    </button>
+  </div>
+  {% endif %}
+
 <!-- Liste des commerciaux sous forme de cartes -->
 <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
     {% for commercial in commerciaux %}
-    <div class="col">
+    <div class="col commercial-card" data-commercial-id="{{ commercial.id }}">
         <div class="card shadow-sm h-100 border-info">
+        {% if is_admin_user %}
+        <div class="form-check position-absolute top-0 end-0 m-2">
+          <input type="checkbox" class="form-check-input check-commercial" value="{{ commercial.id }}" aria-label="Sélectionner {{ commercial.username }}">
+        </div>
+        {% endif %}
             <div class="card-body">
                 <h5 class="card-title text-primary">
                     {{ commercial.first_name }} {{ commercial.last_name }}
@@ -37,9 +54,11 @@
 
                 <div class="d-flex justify-content-end gap-2 actions-cell mt-3">
                     <a href="{% url 'modifier_commercial' commercial.id %}" class="btn btn-warning btn-sm">✏️ Modifier</a>
+                    {% if is_admin_user %}
                     <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteModal" data-commercial-id="{{ commercial.id }}" data-commercial-nom="{{ commercial.username }}">
                         🗑 Supprimer
                     </button>
+                    {% endif %}
                 </div>
             </div>
         </div> 
@@ -100,11 +119,19 @@
 
 /* Cartes avec ombre et bordure */
 .card {
+  position: relative;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 .card:hover {
     transform: translateY(-3px);
     box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+}
+
+.bulk-toolbar {
+  padding: 0.75rem 1rem;
+  border: 1px solid #e9ecef;
+  border-radius: 0.75rem;
+  background: #f8f9fa;
 }
 </style>
 
@@ -130,6 +157,101 @@ document.addEventListener('DOMContentLoaded', function () {
         var toastEl = document.getElementById('deleteToast');
         var toast = new bootstrap.Toast(toastEl);
         toast.show();
+    }
+
+    const selectAllCommerciaux = document.getElementById('selectAllCommerciaux');
+    const btnDeleteSelectedCommerciaux = document.getElementById('btnDeleteSelectedCommerciaux');
+
+    function getCsrfToken() {
+      let cookieValue = null;
+      const cookies = document.cookie ? document.cookie.split(';') : [];
+      cookies.forEach(cookie => {
+        const c = cookie.trim();
+        if (c.startsWith('csrftoken=')) {
+          cookieValue = decodeURIComponent(c.substring('csrftoken='.length));
+        }
+      });
+      return cookieValue;
+    }
+
+    function getCommercialCheckboxes() {
+      return Array.from(document.querySelectorAll('.check-commercial'));
+    }
+
+    function syncBulkCommerciauxState() {
+      const checkboxes = getCommercialCheckboxes();
+      const checkedCount = checkboxes.filter(chk => chk.checked).length;
+      if (selectAllCommerciaux) {
+        selectAllCommerciaux.checked = checkboxes.length > 0 && checkedCount === checkboxes.length;
+        selectAllCommerciaux.disabled = checkboxes.length === 0;
+      }
+      if (btnDeleteSelectedCommerciaux) {
+        btnDeleteSelectedCommerciaux.style.display = checkedCount > 0 ? 'inline-block' : 'none';
+      }
+    }
+
+    if (selectAllCommerciaux) {
+      selectAllCommerciaux.addEventListener('change', function () {
+        getCommercialCheckboxes().forEach(chk => {
+          chk.checked = this.checked;
+        });
+        syncBulkCommerciauxState();
+      });
+    }
+
+    getCommercialCheckboxes().forEach(chk => {
+      chk.addEventListener('change', syncBulkCommerciauxState);
+    });
+    syncBulkCommerciauxState();
+
+    if (btnDeleteSelectedCommerciaux) {
+      btnDeleteSelectedCommerciaux.addEventListener('click', async function () {
+        const selected = getCommercialCheckboxes().filter(chk => chk.checked).map(chk => chk.value);
+        if (!selected.length) {
+          alert('Aucun commercial sélectionné.');
+          return;
+        }
+        if (!confirm(`Supprimer ${selected.length} commercial(aux) sélectionné(s) ?`)) {
+          return;
+        }
+
+        const csrfToken = getCsrfToken();
+        const failures = [];
+
+        for (const id of selected) {
+          try {
+            const response = await fetch(`/commerciaux/supprimer/${id}/`, {
+              method: 'POST',
+              credentials: 'same-origin',
+              headers: {
+                'X-CSRFToken': csrfToken,
+                'X-Requested-With': 'XMLHttpRequest'
+              }
+            });
+            if (!response.ok) {
+              failures.push(id);
+              continue;
+            }
+            const card = document.querySelector(`.commercial-card[data-commercial-id="${id}"]`);
+            if (card) {
+              card.remove();
+            }
+          } catch (e) {
+            failures.push(id);
+          }
+        }
+
+        syncBulkCommerciauxState();
+
+        if (failures.length === 0) {
+          const toastEl = document.getElementById('deleteToast');
+          if (toastEl) {
+            new bootstrap.Toast(toastEl).show();
+          }
+        } else {
+          alert(`${failures.length} suppression(s) ont échoué.`);
+        }
+      });
     }
 });
 </script>

@@ -11,6 +11,16 @@
     </button>
 </div>
 
+<div class="d-flex flex-wrap align-items-center gap-3 mb-4 bulk-toolbar">
+    <div class="form-check m-0">
+        <input class="form-check-input" type="checkbox" id="selectAllClients">
+        <label class="form-check-label" for="selectAllClients">Tout sélectionner</label>
+    </div>
+    <button type="button" class="btn btn-danger" id="btnDeleteSelectedClients" style="display:none;">
+        🗑 Supprimer la sélection
+    </button>
+</div>
+
 <div class="alert alert-light border mb-3">
     <span class="badge bg-primary">Vue globale clients</span>
 </div>
@@ -60,8 +70,11 @@
 <!-- Liste des clients sous forme de cartes -->
 <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
     {% for client in clients %}
-    <div class="col">
+    <div class="col client-card" data-client-slug="{{ client.slug }}">
         <div class="card shadow-sm h-100 border-info">
+            <div class="form-check position-absolute top-0 end-0 m-2">
+                <input type="checkbox" class="form-check-input check-client" value="{{ client.slug }}" aria-label="Sélectionner {{ client.nom }} {{ client.prenom }}">
+            </div>
             <div class="card-body">
                 <h5 class="card-title">
                     <a href="{% url 'devis_par_client' slug=client.slug %}" class="text-decoration-none text-primary">
@@ -138,11 +151,19 @@
 
 /* Cartes avec ombre et bordure */
 .card {
+    position: relative;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 .card:hover {
     transform: translateY(-3px);
     box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+}
+
+.bulk-toolbar {
+    padding: 0.75rem 1rem;
+    border: 1px solid #e9ecef;
+    border-radius: 0.75rem;
+    background: #f8f9fa;
 }
 </style>
 
@@ -168,6 +189,101 @@ document.addEventListener('DOMContentLoaded', function () {
         var toastEl = document.getElementById('deleteToast');
         var toast = new bootstrap.Toast(toastEl);
         toast.show();
+    }
+
+    const selectAllClients = document.getElementById('selectAllClients');
+    const btnDeleteSelectedClients = document.getElementById('btnDeleteSelectedClients');
+
+    function getClientCheckboxes() {
+        return Array.from(document.querySelectorAll('.check-client'));
+    }
+
+    function getCsrfToken() {
+        let cookieValue = null;
+        const cookies = document.cookie ? document.cookie.split(';') : [];
+        cookies.forEach(cookie => {
+            const c = cookie.trim();
+            if (c.startsWith('csrftoken=')) {
+                cookieValue = decodeURIComponent(c.substring('csrftoken='.length));
+            }
+        });
+        return cookieValue;
+    }
+
+    function syncBulkClientsState() {
+        const checkboxes = getClientCheckboxes();
+        const checkedCount = checkboxes.filter(chk => chk.checked).length;
+        if (selectAllClients) {
+            selectAllClients.checked = checkboxes.length > 0 && checkedCount === checkboxes.length;
+            selectAllClients.disabled = checkboxes.length === 0;
+        }
+        if (btnDeleteSelectedClients) {
+            btnDeleteSelectedClients.style.display = checkedCount > 0 ? 'inline-block' : 'none';
+        }
+    }
+
+    if (selectAllClients) {
+        selectAllClients.addEventListener('change', function () {
+            getClientCheckboxes().forEach(chk => {
+                chk.checked = this.checked;
+            });
+            syncBulkClientsState();
+        });
+    }
+
+    getClientCheckboxes().forEach(chk => {
+        chk.addEventListener('change', syncBulkClientsState);
+    });
+    syncBulkClientsState();
+
+    if (btnDeleteSelectedClients) {
+        btnDeleteSelectedClients.addEventListener('click', async function () {
+            const selected = getClientCheckboxes().filter(chk => chk.checked).map(chk => chk.value);
+            if (!selected.length) {
+                alert('Aucun client sélectionné.');
+                return;
+            }
+            if (!confirm(`Supprimer ${selected.length} client(s) sélectionné(s) ?`)) {
+                return;
+            }
+
+            const csrfToken = getCsrfToken();
+            const failures = [];
+
+            for (const slug of selected) {
+                try {
+                    const response = await fetch(`/clients/${slug}/supprimer/`, {
+                        method: 'POST',
+                        credentials: 'same-origin',
+                        headers: {
+                            'X-CSRFToken': csrfToken,
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    });
+                    if (!response.ok) {
+                        failures.push(slug);
+                        continue;
+                    }
+                    const card = document.querySelector(`.client-card[data-client-slug="${slug}"]`);
+                    if (card) {
+                        card.remove();
+                    }
+                } catch (e) {
+                    failures.push(slug);
+                }
+            }
+
+            syncBulkClientsState();
+
+            if (failures.length === 0) {
+                const toastEl = document.getElementById('deleteToast');
+                if (toastEl) {
+                    new bootstrap.Toast(toastEl).show();
+                }
+            } else {
+                alert(`${failures.length} suppression(s) ont échoué.`);
+            }
+        });
     }
 });
 </script>
