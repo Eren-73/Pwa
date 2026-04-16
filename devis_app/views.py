@@ -736,17 +736,43 @@ def voir_version_historique(request, historique_id):
 
 @login_required(login_url='login')
 def supprimer_devis_selectionnes(request):
-    if request.method == "POST":
-        try:
-            data = json.loads(request.body)
-            devis_ids = [int(i) for i in data.get("devis_ids", [])]  # conversion en int
-            deleted_count, _ = _deletable_devis_queryset(request.user).filter(id__in=devis_ids).delete()
-            if deleted_count == 0 and devis_ids:
-                return JsonResponse({"success": False, "error": "Aucun devis supprimé (droits insuffisants)."}, status=403)
-            return JsonResponse({"success": True})
-        except Exception as e:
-            return JsonResponse({"success": False, "error": str(e)}, status=400)
-    return JsonResponse({"success": False, "error": "Méthode non autorisée"}, status=405)
+    if request.method != "POST":
+        return JsonResponse({"success": False, "error": "Méthode non autorisée"}, status=405)
+
+    try:
+        content_type = request.headers.get('Content-Type', '')
+        raw_ids = []
+
+        if 'application/json' in content_type:
+            try:
+                data = json.loads((request.body or b'{}').decode('utf-8'))
+            except json.JSONDecodeError:
+                return JsonResponse({"success": False, "error": "Payload JSON invalide."}, status=400)
+            raw_ids = data.get('devis_ids', [])
+        else:
+            # Fallback pour formulaires classiques
+            raw_ids = request.POST.getlist('devis_ids[]') or request.POST.getlist('devis_ids')
+
+        devis_ids = []
+        for value in raw_ids:
+            try:
+                devis_ids.append(int(value))
+            except (TypeError, ValueError):
+                continue
+
+        # Déduplique pour éviter les suppressions redondantes
+        devis_ids = list(set(devis_ids))
+
+        if not devis_ids:
+            return JsonResponse({"success": False, "error": "Aucun devis sélectionné."}, status=400)
+
+        deleted_count, _ = _deletable_devis_queryset(request.user).filter(id__in=devis_ids).delete()
+        if deleted_count == 0:
+            return JsonResponse({"success": False, "error": "Aucun devis supprimé (droits insuffisants)."}, status=403)
+
+        return JsonResponse({"success": True, "deleted_count": deleted_count})
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)}, status=400)
 
 
 @login_required(login_url='login')

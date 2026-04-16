@@ -23,11 +23,17 @@
     <div class="d-none d-md-flex justify-content-start mb-4 gap-3 flex-wrap">
       <a href="{% url 'creer_devis' %}" class="btn btn-primary">➕ Créer un devis</a>
       {% if can_delete_devis %}
+      <div class="form-check d-flex align-items-center ms-1 mt-2 mt-md-0">
+          <input type="checkbox" class="form-check-input" id="selectAllDevis">
+          <label class="form-check-label ms-2" for="selectAllDevis">Tout sélectionner</label>
+      </div>
       <button type="button" id="btnSupprimerSelection" class="btn btn-danger" style="display:none;" data-bs-toggle="modal" data-bs-target="#confirmDeleteModal">
           🗑 Supprimer les devis sélectionnés
       </button>
       {% endif %}
   </div>
+
+  <input type="hidden" id="csrfTokenValue" value="{{ csrf_token }}">
 
   <!-- Filtre par date + recherche -->
     <form method="get" class="row g-3 mb-4 align-items-end">
@@ -290,9 +296,22 @@
 document.addEventListener('DOMContentLoaded', function() {
     const btnSupprimer = document.getElementById('btnSupprimerSelection');
     const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+    const selectAllDevis = document.getElementById('selectAllDevis');
 
     function getCheckboxes() {
         return document.querySelectorAll('.check-devis');
+    }
+
+    function syncSelectAllState() {
+        if (!selectAllDevis) return;
+        const checkboxes = Array.from(getCheckboxes());
+        if (checkboxes.length === 0) {
+            selectAllDevis.checked = false;
+            selectAllDevis.disabled = true;
+            return;
+        }
+        selectAllDevis.disabled = false;
+        selectAllDevis.checked = checkboxes.every(chk => chk.checked);
     }
 
     function toggleBtn() {
@@ -300,10 +319,12 @@ document.addEventListener('DOMContentLoaded', function() {
         if (btnSupprimer) {
             btnSupprimer.style.display = anyChecked ? 'inline-block' : 'none';
         }
+        syncSelectAllState();
     }
 
     function resetCheckboxes() {
         getCheckboxes().forEach(chk => chk.checked = false);
+        if (selectAllDevis) selectAllDevis.checked = false;
         toggleBtn();
     }
 
@@ -328,6 +349,17 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     const csrftoken = getCookie('csrftoken');
+
+    if (selectAllDevis) {
+        selectAllDevis.addEventListener('change', function() {
+            const checked = this.checked;
+            getCheckboxes().forEach(chk => {
+                chk.checked = checked;
+            });
+            toggleBtn();
+        });
+    }
+
     attachCheckboxEvents();
     toggleBtn();
 
@@ -337,16 +369,21 @@ document.addEventListener('DOMContentLoaded', function() {
                                      .filter(chk => chk.checked)
                                      .map(chk => parseInt(chk.value));
 
-        if(selectedIds.length === 0) return;
+        if(selectedIds.length === 0) {
+            alert("Aucun devis sélectionné.");
+            return;
+        }
 
         const deleteUrl = new URL("{% url 'supprimer_devis_selectionnes' %}", window.location.origin).toString();
+        const csrfInputToken = document.getElementById('csrfTokenValue')?.value;
+        const csrfHeader = csrftoken || csrfInputToken;
 
         fetch(deleteUrl, {
             method: "POST",
             credentials: "same-origin",
             headers: {
                 "Content-Type": "application/json",
-                "X-CSRFToken": csrftoken
+                "X-CSRFToken": csrfHeader
             },
             body: JSON.stringify({ devis_ids: selectedIds })
         })
@@ -369,6 +406,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 resetCheckboxes();
                 attachCheckboxEvents();
+                syncSelectAllState();
 
                 const toastEl = document.getElementById('deleteToast');
                 if(toastEl) new bootstrap.Toast(toastEl).show();
