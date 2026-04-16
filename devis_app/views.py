@@ -748,15 +748,23 @@ def supprimer_devis_selectionnes(request):
     if request.method != "POST":
         return JsonResponse({"success": False, "error": "Méthode non autorisée"}, status=405)
 
+    content_type = request.headers.get('Content-Type', '')
+    wants_json = (
+        'application/json' in content_type
+        or request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+    )
+
     try:
-        content_type = request.headers.get('Content-Type', '')
         raw_ids = []
 
         if 'application/json' in content_type:
             try:
                 data = json.loads((request.body or b'{}').decode('utf-8'))
             except json.JSONDecodeError:
-                return JsonResponse({"success": False, "error": "Payload JSON invalide."}, status=400)
+                if wants_json:
+                    return JsonResponse({"success": False, "error": "Payload JSON invalide."}, status=400)
+                messages.error(request, "Requête de suppression invalide.")
+                return redirect('dashboard')
             raw_ids = data.get('devis_ids', [])
         else:
             # Fallback pour formulaires classiques
@@ -773,15 +781,28 @@ def supprimer_devis_selectionnes(request):
         devis_ids = list(set(devis_ids))
 
         if not devis_ids:
-            return JsonResponse({"success": False, "error": "Aucun devis sélectionné."}, status=400)
+            if wants_json:
+                return JsonResponse({"success": False, "error": "Aucun devis sélectionné."}, status=400)
+            messages.warning(request, "Aucun devis sélectionné.")
+            return redirect('dashboard')
 
         deleted_count, _ = _deletable_devis_queryset(request.user).filter(id__in=devis_ids).delete()
         if deleted_count == 0:
-            return JsonResponse({"success": False, "error": "Aucun devis supprimé (droits insuffisants)."}, status=403)
+            if wants_json:
+                return JsonResponse({"success": False, "error": "Aucun devis supprimé (droits insuffisants)."}, status=403)
+            messages.error(request, "Aucun devis supprimé (droits insuffisants).")
+            return redirect('dashboard')
 
-        return JsonResponse({"success": True, "deleted_count": deleted_count})
+        if wants_json:
+            return JsonResponse({"success": True, "deleted_count": deleted_count})
+
+        messages.success(request, f"{deleted_count} devis supprimé(s) avec succès.")
+        return redirect('dashboard')
     except Exception as e:
-        return JsonResponse({"success": False, "error": str(e)}, status=400)
+        if wants_json:
+            return JsonResponse({"success": False, "error": str(e)}, status=400)
+        messages.error(request, f"Erreur pendant la suppression: {str(e)}")
+        return redirect('dashboard')
 
 
 @login_required(login_url='login')

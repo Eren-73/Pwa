@@ -33,7 +33,10 @@
       {% endif %}
   </div>
 
-  <input type="hidden" id="csrfTokenValue" value="{{ csrf_token }}">
+    <form method="post" action="{% url 'supprimer_devis_selectionnes' %}" id="bulkDeleteForm" class="d-none">
+            {% csrf_token %}
+            <div id="bulkDeleteIds"></div>
+    </form>
 
   <!-- Filtre par date + recherche -->
     <form method="get" class="row g-3 mb-4 align-items-end">
@@ -304,6 +307,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const btnSupprimer = document.getElementById('btnSupprimerSelection');
     const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
     const selectAllDevis = document.getElementById('selectAllDevis');
+    const bulkDeleteForm = document.getElementById('bulkDeleteForm');
+    const bulkDeleteIds = document.getElementById('bulkDeleteIds');
 
     function getCheckboxes() {
         return document.querySelectorAll('.check-devis');
@@ -342,21 +347,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    function getCookie(name) {
-        let cookieValue = null;
-        if (document.cookie && document.cookie !== '') {
-            document.cookie.split(';').forEach(cookie => {
-                cookie = cookie.trim();
-                if (cookie.startsWith(name + '=')) {
-                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                }
-            });
-        }
-        return cookieValue;
-    }
-
-    const csrftoken = getCookie('csrftoken');
-
     if (selectAllDevis) {
         selectAllDevis.addEventListener('change', function() {
             const checked = this.checked;
@@ -381,47 +371,21 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        const deleteUrl = new URL("{% url 'supprimer_devis_selectionnes' %}", window.location.origin).toString();
-        const csrfInputToken = document.getElementById('csrfTokenValue')?.value;
-        const csrfHeader = csrftoken || csrfInputToken;
+        if (!bulkDeleteForm || !bulkDeleteIds) {
+            alert("Le formulaire de suppression est introuvable.");
+            return;
+        }
 
-        fetch(deleteUrl, {
-            method: "POST",
-            credentials: "same-origin",
-            headers: {
-                "Content-Type": "application/json",
-                "X-CSRFToken": csrfHeader
-            },
-            body: JSON.stringify({ devis_ids: selectedIds })
-        })
-        .then(response => {
-            if (!response.ok) throw new Error("Erreur serveur " + response.status);
-            return response.json();
-        })
-        .then(data => {
-            if(data.success) {
-                selectedIds.forEach(id => {
-                    const card = document.querySelector('.devis-card[data-id="'+id+'"]');
-                    if(card) card.remove();
-                });
+        bulkDeleteIds.innerHTML = '';
+        selectedIds.forEach(id => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'devis_ids[]';
+            input.value = String(id);
+            bulkDeleteIds.appendChild(input);
+        });
 
-                const modal = bootstrap.Modal.getInstance(document.getElementById('confirmDeleteModal'));
-                if(modal) modal.hide();
-                document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
-                document.body.classList.remove('modal-open');
-                document.body.style.overflow = 'auto';
-
-                resetCheckboxes();
-                attachCheckboxEvents();
-                syncSelectAllState();
-
-                const toastEl = document.getElementById('deleteToast');
-                if(toastEl) new bootstrap.Toast(toastEl).show();
-            } else {
-                alert("Erreur : " + (data.error || "Suppression échouée"));
-            }
-        })
-        .catch(err => alert("Erreur : " + err));
+        bulkDeleteForm.submit();
         });
     }
 });
