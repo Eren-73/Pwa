@@ -31,7 +31,7 @@
     <tbody>
         {% for ligne in devis.lignes.all %}
         <tr>
-            <td>{{ ligne.produit.nom }}</td>
+            <td>{{ ligne.designation_display }}</td>
             <td>{{ ligne.quantite }}</td>
             <td>{{ ligne.pu }} €</td>
             <td>{{ ligne.total_ht }} €</td>

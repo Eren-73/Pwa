@@ -496,7 +496,7 @@
             <tbody>
                 {% for ligne in donnees_avant.lignes %}
                 <tr>
-                    <td style="padding: 6px; font-weight: bold;">{{ ligne.produit }}</td>
+                    <td style="padding: 6px; font-weight: bold;">{{ ligne.designation|default:ligne.produit|default:"Produit supprimé" }}</td>
                     <td style="padding: 6px;">{{ ligne.quantite }}</td>
                     <td style="padding: 6px;">{{ ligne.unite|default:"unité" }}</td>
                     <td style="padding: 6px;">{{ ligne.pu|floatformat:2 }} </td>

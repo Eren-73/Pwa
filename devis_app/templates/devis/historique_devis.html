@@ -94,7 +94,7 @@
                         <tbody>
                             {% for ligne in entry.donnees_avant.lignes %}
                             <tr>
-                                <td>{{ ligne.produit }}</td>
+                                <td>{{ ligne.designation|default:ligne.produit|default:"Produit supprimé" }}</td>
                                 <td class="text-center">{{ ligne.quantite }}</td>
                                 <td class="text-end">{{ ligne.pu|floatformat:2 }}</td>
                                 <td class="text-end">{{ ligne.remise|floatformat:2 }}</td>

@@ -258,6 +258,10 @@ class LigneDevis(models.Model):
 
     def __str__(self):
         return f"{self.quantite} {self.unite}"
+
+    @property
+    def designation_display(self):
+        return str(self.produit) if self.produit else 'Produit supprimé'
     
 
 

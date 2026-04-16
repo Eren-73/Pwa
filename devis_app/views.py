@@ -167,6 +167,7 @@ def creer_devis(request, slug=None):
             for ligne in devis_existant.lignes.all():
                 lignes_data.append({
                     'produit': ligne.produit.nom if ligne.produit else '',
+                    'designation': ligne.designation_display,
                     'quantite': float(ligne.quantite),
                     'unite': ligne.unite,
                     'pu': float(ligne.pu),
@@ -590,6 +591,7 @@ def modifier_devis(request, slug):
         for ligne in devis.lignes.all():
             lignes_data.append({
                 'produit': ligne.produit.nom if ligne.produit else '',
+                'designation': ligne.designation_display,
                 'quantite': float(ligne.quantite),
                 'unite': ligne.unite,
                 'pu': float(ligne.pu),
@@ -661,6 +663,8 @@ def modifier_devis(request, slug):
             devis.lignes.all().delete()
             for form in formset:
                 if form.cleaned_data and not form.cleaned_data.get('DELETE', False):
+                    if not form.cleaned_data.get('produit'):
+                        continue
                     ligne = form.save(commit=False)
                     ligne.devis = devis
                     ligne.save()
@@ -954,7 +958,7 @@ def export_devis_excel(request, slug):
         table_row += 1
         # Row data with proper types
         values = [
-            (ligne.produit.nom, 'text', left_align),
+            (ligne.designation_display, 'text', left_align),
             (ligne.quantite, 'number', right_align),
             (ligne.unite, 'text', center_align),
             (ligne.pu, 'money', right_align),
@@ -1131,7 +1135,7 @@ def export_devis_word(request, slug):
     doc.add_paragraph('')
     doc.add_paragraph('Lignes :')
     for l in lignes:
-        doc.add_paragraph(f'- {l.produit.nom} x{l.quantite} : {l.total_ttc}')
+        doc.add_paragraph(f'- {l.designation_display} x{l.quantite} : {l.total_ttc}')
 
     # prepare response
     bio = io.BytesIO()
