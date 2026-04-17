@@ -447,7 +447,7 @@
                         {% if whatsapp_url %}
                             <a class="dropdown-item" href="{{ whatsapp_url }}" target="_blank" rel="noopener noreferrer"
                                onclick="return openWhatsAppShare('{{ whatsapp_client_phone }}', '{{ whatsapp_message|escapejs }}', '{{ whatsapp_url|escapejs }}');">
-                                💬 Envoyer le PDF par WhatsApp au client {{ whatsapp_client_phone }}
+                                💬 Envoyer le lien PDF par WhatsApp au client {{ whatsapp_client_phone }}
                             </a>
                         {% else %}
                             <a class="dropdown-item" href="#" onclick="alert('Le client n\'a pas de numéro de téléphone.'); return false;">
