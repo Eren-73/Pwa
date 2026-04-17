@@ -3,7 +3,7 @@ from .models import Devis, LigneDevis, Client, Categorie, Produit, PointVente, H
 from .forms import DevisForm, LigneDevisForm,ClientForm,ProduitForm,CategorieForm
 from django.forms import modelformset_factory
 from django.urls import reverse
-from .utils import generate_qr_code
+from .utils import generate_qr_code, normalize_phone_for_whatsapp
 from django.http import JsonResponse
 from django.contrib import messages
 from django.template.loader import render_to_string
@@ -25,7 +25,6 @@ from .forms import CommercialCreateForm
 from .models import ActionCommercial
 import os
 import io
-import re
 from urllib.parse import quote
 from collections import defaultdict
 from django.core.mail import EmailMessage
@@ -126,10 +125,8 @@ def _commercial_contact_for_devis(devis):
 
 
 def _whatsapp_phone(value):
-    """Normalise un numéro de téléphone pour wa.me (digits only)."""
-    if not value:
-        return ''
-    return re.sub(r'\D+', '', value)
+    """Normalise un numéro de téléphone pour wa.me (format international)."""
+    return normalize_phone_for_whatsapp(value)
 
 
 def _is_ajax_request(request):
@@ -392,15 +389,16 @@ def devis_template(request, slug):
 
     client_phone = _whatsapp_phone(getattr(devis.client, 'telephone', ''))
     if client_phone:
+        pdf_url = request.build_absolute_uri(reverse('export_pdf', args=[devis.slug]))
         message = (
             f"Bonjour {devis.client.prenom} {devis.client.nom}, "
             f"voici votre devis N° {devis.numero_devis} (Total TTC: {devis.total_ttc} CFA). "
-            f"Consultez-le ici: {request.build_absolute_uri()} "
+            f"Téléchargez le PDF ici: {pdf_url} "
             f"Contact commercial: {commercial_contact['name']}"
         )
         if commercial_contact['phone']:
             message += f" - WhatsApp: {commercial_contact['phone']}"
-        whatsapp_url = f"https://wa.me/{client_phone}?text={quote(message)}"
+        whatsapp_url = f"https://api.whatsapp.com/send/?phone={client_phone}&text={quote(message)}&type=phone_number&app_absent=0"
 
     return render(request, 'devis/devis_template.html', {
         'devis': devis,
@@ -409,6 +407,7 @@ def devis_template(request, slug):
         'can_modify_devis': can_modify_devis,
         'commercial_contact': commercial_contact,
         'whatsapp_url': whatsapp_url,
+        'whatsapp_client_phone': client_phone,
     })
 
 @login_required(login_url='login')

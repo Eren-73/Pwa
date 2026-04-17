@@ -446,7 +446,7 @@
                     <li>
                         {% if whatsapp_url %}
                             <a class="dropdown-item" href="{{ whatsapp_url }}" target="_blank" rel="noopener noreferrer">
-                                💬 Envoyer par WhatsApp
+                                💬 Envoyer par WhatsApp au client {{ whatsapp_client_phone }}
                             </a>
                         {% else %}
                             <a class="dropdown-item" href="#" onclick="alert('Le client n\'a pas de numéro de téléphone.'); return false;">

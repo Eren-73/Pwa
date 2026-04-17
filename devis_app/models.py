@@ -5,7 +5,7 @@ from datetime import timedelta
 import uuid
 from django.db.models import Max
 
-from .utils import  generate_qr_code,nombre_en_lettres
+from .utils import generate_qr_code, nombre_en_lettres, normalize_phone_for_whatsapp
 from decimal import Decimal,ROUND_HALF_UP
 from django.utils.crypto import get_random_string
 from django.contrib.auth.models import User
@@ -32,6 +32,10 @@ class PointVente(models.Model):
     adresse = models.CharField(max_length=255, blank=True, null=True)
     telephone = models.CharField(max_length=20, blank=True, null=True)
 
+    def save(self, *args, **kwargs):
+        self.telephone = normalize_phone_for_whatsapp(self.telephone)
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return f"{self.numero} - {self.nom}" if self.numero else self.nom
 
@@ -44,6 +48,10 @@ class Profile(models.Model):
     role = models.CharField(max_length=20, choices=ROLE_CHOICES)
     point_vente = models.ForeignKey(PointVente, on_delete=models.SET_NULL, null=True, blank=True)
     telephone = models.CharField(max_length=20, blank=True, null=True)
+
+    def save(self, *args, **kwargs):
+        self.telephone = normalize_phone_for_whatsapp(self.telephone)
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.user.username} - {self.role}"
@@ -85,6 +93,8 @@ class Client(models.Model):
     slug = models.SlugField(unique=True, blank=True)
 
     def save(self, *args, **kwargs):
+        self.telephone = normalize_phone_for_whatsapp(self.telephone)
+
         # Générer un slug si vide
         if not self.slug:
             base_slug = slugify(f"{self.prenom} {self.nom}")

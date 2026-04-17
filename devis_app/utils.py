@@ -4,6 +4,7 @@ from django.core.files.base import ContentFile
 from num2words import num2words
 from django.urls import reverse
 from django.conf import settings
+import re
 
 
 def generate_qr_code(devis_slug):
@@ -39,6 +40,26 @@ def nombre_en_lettres(nombre):
         return num2words(nombre, lang='fr').capitalize()
     except:
         return ""
+
+
+def normalize_phone_for_whatsapp(value):
+    if not value:
+        return ''
+
+    digits = re.sub(r'\D+', '', str(value))
+    if not digits:
+        return ''
+
+    if digits.startswith('00'):
+        digits = digits[2:]
+
+    if len(digits) == 10 and digits.startswith('0'):
+        return f'225{digits[1:]}'
+
+    if len(digits) == 13 and digits.startswith('00225'):
+        return digits[2:]
+
+    return digits
 def generate_qr_for_facture(facture):
     url = f"http://192.168.1.20:8000{reverse('detail_facture', args=[facture.id])}"
     return generate_qr_code(url) 
