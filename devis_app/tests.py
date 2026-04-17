@@ -54,7 +54,11 @@ class WhatsAppPhoneTest(TestCase):
 	def test_normalize_ci_local_number(self):
 		self.assertEqual(normalize_phone_for_whatsapp("0546858286"), "2250546858286")
 
-	def test_repair_old_ci_number_without_zero(self):
+	def test_normalize_ci_prefixes(self):
+		self.assertEqual(normalize_phone_for_whatsapp("0145678901"), "2250145678901")
+		self.assertEqual(normalize_phone_for_whatsapp("0787654321"), "2250787654321")
+
+	def test_repair_old_malformed_ci_number(self):
 		self.assertEqual(normalize_phone_for_whatsapp("225546858286"), "2250546858286")
 
 	def test_client_phone_is_normalized_on_save(self):
