@@ -12,6 +12,7 @@ urlpatterns = [
     path('creer/', views.creer_devis, name='creer_devis'),
     path('creer/<slug:slug>/', views.creer_devis, name='modifier_devis_v2'),  # Nouvelle route pour modification
     path('facture/<slug:slug>/', views.devis_template , name='devis_template'),
+    path('facture/<slug:slug>/pdf/', views.export_pdf_public, name='export_pdf_public'),
 
     # ---- Clients ----
     path("clients/", views.liste_clients, name="liste_clients"),

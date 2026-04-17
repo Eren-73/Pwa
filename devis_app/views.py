@@ -390,7 +390,7 @@ def devis_template(request, slug):
 
     client_phone = _whatsapp_phone(getattr(devis.client, 'telephone', ''))
     if client_phone:
-        pdf_url = request.build_absolute_uri(reverse('export_pdf', args=[devis.slug]))
+        pdf_url = request.build_absolute_uri(reverse('export_pdf_public', args=[devis.slug]))
         message = (
             f"Bonjour {devis.client.prenom} {devis.client.nom}, "
             f"voici le PDF de votre devis N° {devis.numero_devis} (Total TTC: {devis.total_ttc} CFA). "
@@ -1175,6 +1175,33 @@ def export_pdf(request, slug):
     except Exception as e:
         print(f"PDF Generation Error: {str(e)}")  # Debug log
         return HttpResponse(html)  # Fallback to HTML for debugging
+
+
+def export_pdf_public(request, slug):
+    """Exporte le devis en PDF via un lien public utilisable dans WhatsApp."""
+    devis = get_object_or_404(Devis, slug=slug)
+    lignes = devis.lignes.all()
+
+    commercial_contact = _commercial_contact_for_devis(devis)
+    context = {
+        'devis': devis,
+        'lignes': lignes,
+        'qr_code_url': request.build_absolute_uri(devis.qr_code.url) if devis.qr_code else None,
+        'is_pdf': True,
+        'commercial_contact': commercial_contact,
+    }
+
+    html = render_to_string('devis/devis_template.html', context, request=request)
+
+    try:
+        pdf = weasyprint.HTML(string=html, base_url=request.build_absolute_uri('/')).write_pdf()
+
+        response = HttpResponse(pdf, content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="devis_{devis.numero_devis}.pdf"'
+        return response
+    except Exception as e:
+        print(f"PDF Generation Error: {str(e)}")
+        return HttpResponse(html)
 
 
 @login_required(login_url='login')
