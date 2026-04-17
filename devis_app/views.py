@@ -386,6 +386,7 @@ def devis_template(request, slug):
     can_modify_devis = _can_modify_devis(request.user, devis)
     commercial_contact = _commercial_contact_for_devis(devis)
     whatsapp_url = ''
+    whatsapp_message = ''
 
     client_phone = _whatsapp_phone(getattr(devis.client, 'telephone', ''))
     if client_phone:
@@ -396,8 +397,7 @@ def devis_template(request, slug):
             f"Téléchargez le PDF ici: {pdf_url} "
             f"Contact commercial: {commercial_contact['name']}"
         )
-        if commercial_contact['phone']:
-            message += f" - WhatsApp: {commercial_contact['phone']}"
+        whatsapp_message = message
         whatsapp_url = f"https://api.whatsapp.com/send/?phone={client_phone}&text={quote(message)}&type=phone_number&app_absent=0"
 
     return render(request, 'devis/devis_template.html', {
@@ -408,6 +408,7 @@ def devis_template(request, slug):
         'commercial_contact': commercial_contact,
         'whatsapp_url': whatsapp_url,
         'whatsapp_client_phone': client_phone,
+        'whatsapp_message': whatsapp_message,
     })
 
 @login_required(login_url='login')
