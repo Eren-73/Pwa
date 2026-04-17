@@ -393,9 +393,8 @@ def devis_template(request, slug):
         pdf_url = request.build_absolute_uri(reverse('export_pdf', args=[devis.slug]))
         message = (
             f"Bonjour {devis.client.prenom} {devis.client.nom}, "
-            f"voici votre devis N° {devis.numero_devis} (Total TTC: {devis.total_ttc} CFA). "
-            f"Téléchargez le PDF ici: {pdf_url} "
-            f"Contact commercial: {commercial_contact['name']}"
+            f"voici le PDF de votre devis N° {devis.numero_devis} (Total TTC: {devis.total_ttc} CFA). "
+            f"Téléchargez le PDF ici: {pdf_url}"
         )
         whatsapp_message = message
         whatsapp_url = f"https://api.whatsapp.com/send/?phone={client_phone}&text={quote(message)}&type=phone_number&app_absent=0"

@@ -445,8 +445,9 @@
                     </li>
                     <li>
                         {% if whatsapp_url %}
-                            <a class="dropdown-item" href="{{ whatsapp_url }}" target="_blank" rel="noopener noreferrer">
-                                💬 Envoyer par WhatsApp au client {{ whatsapp_client_phone }}
+                            <a class="dropdown-item" href="{{ whatsapp_url }}" target="_blank" rel="noopener noreferrer"
+                               onclick="return openWhatsAppShare('{{ whatsapp_client_phone }}', '{{ whatsapp_message|escapejs }}', '{{ whatsapp_url|escapejs }}');">
+                                💬 Envoyer le PDF par WhatsApp au client {{ whatsapp_client_phone }}
                             </a>
                         {% else %}
                             <a class="dropdown-item" href="#" onclick="alert('Le client n\'a pas de numéro de téléphone.'); return false;">
@@ -652,6 +653,29 @@
         </div>
 
     </div>
+
+    <script>
+        function openWhatsAppShare(phone, message, fallbackUrl) {
+            if (!phone) {
+                alert("Le client n'a pas de numéro WhatsApp valide.");
+                return false;
+            }
+
+            var appUrl = 'whatsapp://send?phone=' + encodeURIComponent(phone) + '&text=' + encodeURIComponent(message || '');
+
+            // 1) Tente d'ouvrir l'application WhatsApp directement.
+            window.location.href = appUrl;
+
+            // 2) Fallback web au cas où le protocole whatsapp:// n'est pas supporté.
+            setTimeout(function () {
+                if (fallbackUrl) {
+                    window.open(fallbackUrl, '_blank', 'noopener,noreferrer');
+                }
+            }, 800);
+
+            return false;
+        }
+    </script>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
