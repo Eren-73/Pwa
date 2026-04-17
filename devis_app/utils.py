@@ -53,11 +53,20 @@ def normalize_phone_for_whatsapp(value):
     if digits.startswith('00'):
         digits = digits[2:]
 
-    if len(digits) == 10 and digits.startswith('0'):
-        return f'225{digits[1:]}'
+    # Côte d'Ivoire (plan à 10 chiffres): numéros mobiles commencent par 01, 05 ou 07.
+    # Format WhatsApp attendu: 225 + 0XXXXXXXXX (on garde le 0 après l'indicatif pays).
+    if len(digits) == 10 and digits.startswith(('01', '05', '07')):
+        return f'225{digits}'
 
-    if len(digits) == 13 and digits.startswith('00225'):
-        return digits[2:]
+    # Déjà normalisé correctement.
+    if len(digits) == 13 and digits.startswith(('22501', '22505', '22507')):
+        return digits
+
+    # Répare les anciens numéros mal convertis où le 0 a été supprimé (ex: 225546...)
+    if len(digits) == 12 and digits.startswith('225'):
+        local_candidate = digits[3:]
+        if local_candidate.startswith(('1', '5', '7')):
+            return f'2250{local_candidate}'
 
     return digits
 def generate_qr_for_facture(facture):
