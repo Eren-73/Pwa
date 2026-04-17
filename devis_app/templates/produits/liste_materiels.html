@@ -211,10 +211,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
             if(!confirm("Voulez-vous vraiment supprimer ce produit ?")) return;
 
+            const csrfToken = getCsrfToken() || '{{ csrf_token }}';
+
             fetch("{% url 'supprimer_produit' 0 %}".replace('0', produitId), {
                 method: "POST",
                 headers: {
-                "X-CSRFToken": getCsrfToken(),
+              "X-CSRFToken": csrfToken,
                 "X-Requested-With": "XMLHttpRequest"
                 },
             })
@@ -266,7 +268,7 @@ document.addEventListener('DOMContentLoaded', function() {
               method: 'POST',
               credentials: 'same-origin',
               headers: {
-                'X-CSRFToken': getCsrfToken(),
+                'X-CSRFToken': getCsrfToken() || '{{ csrf_token }}',
                 'X-Requested-With': 'XMLHttpRequest'
               }
             });

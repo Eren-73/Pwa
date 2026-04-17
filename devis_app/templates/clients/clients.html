@@ -11,6 +11,7 @@
     </button>
 </div>
 
+{% if can_delete_clients %}
 <div class="d-flex flex-wrap align-items-center gap-3 mb-4 bulk-toolbar">
     <div class="form-check m-0">
         <input class="form-check-input" type="checkbox" id="selectAllClients">
@@ -20,6 +21,7 @@
         🗑 Supprimer la sélection
     </button>
 </div>
+{% endif %}
 
 <div class="alert alert-light border mb-3">
     <span class="badge bg-primary">Vue globale clients</span>
@@ -72,9 +74,11 @@
     {% for client in clients %}
     <div class="col client-card" data-client-slug="{{ client.slug }}">
         <div class="card shadow-sm h-100 border-info">
+            {% if can_delete_clients %}
             <div class="form-check position-absolute top-0 end-0 m-2">
                 <input type="checkbox" class="form-check-input check-client" value="{{ client.slug }}" aria-label="Sélectionner {{ client.nom }} {{ client.prenom }}">
             </div>
+            {% endif %}
             <div class="card-body">
                 <h5 class="card-title">
                     <a href="{% url 'devis_par_client' slug=client.slug %}" class="text-decoration-none text-primary">
@@ -89,9 +93,11 @@
 
                 <div class="d-flex justify-content-end gap-2 actions-cell">
                     <a href="{% url 'modifier_client' slug=client.slug %}" class="btn btn-warning btn-sm">✏️ Modifier</a>
+                    {% if can_delete_clients %}
                     <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteModal" data-client-id="{{ client.slug }}" data-client-nom="{{ client.nom }}">
                         🗑 Supprimer
                     </button>
+                    {% endif %}
                 </div>
             </div>
         </div> 
@@ -103,6 +109,7 @@
     {% endfor %}
 </div>
 
+{% if can_delete_clients %}
 <!-- Modal de confirmation de suppression -->
 <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
@@ -124,6 +131,7 @@
     </div>
   </div>
 </div>
+{% endif %}
 
 <!-- Toast notification -->
 <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
@@ -181,16 +189,18 @@
 document.addEventListener('DOMContentLoaded', function () {
     // Gestion modal suppression
     var deleteModal = document.getElementById('deleteModal');
-    deleteModal.addEventListener('show.bs.modal', function (event) {
-        var button = event.relatedTarget;
-        var clientId = button.getAttribute('data-client-id');
-        var clientNom = button.getAttribute('data-client-nom');
-        var modalTitle = deleteModal.querySelector('#clientName');
-        var form = deleteModal.querySelector('#deleteForm');
+    if (deleteModal) {
+        deleteModal.addEventListener('show.bs.modal', function (event) {
+            var button = event.relatedTarget;
+            var clientId = button.getAttribute('data-client-id');
+            var clientNom = button.getAttribute('data-client-nom');
+            var modalTitle = deleteModal.querySelector('#clientName');
+            var form = deleteModal.querySelector('#deleteForm');
 
-        modalTitle.textContent = clientNom;
-        form.action = '/clients/' + clientId + '/supprimer/';
-    });
+            modalTitle.textContent = clientNom;
+            form.action = '/clients/' + clientId + '/supprimer/';
+        });
+    }
 
     // Afficher le toast après suppression via paramètre GET
     const urlParams = new URLSearchParams(window.location.search);
@@ -256,7 +266,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
 
-            const csrfToken = getCsrfToken();
+            const csrfToken = getCsrfToken() || '{{ csrf_token }}';
             const failures = [];
 
             for (const slug of selected) {

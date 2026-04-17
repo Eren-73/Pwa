@@ -128,7 +128,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
 
-            const csrfToken = getCsrfToken();
+            const csrfToken = getCsrfToken() || '{{ csrf_token }}';
             const failures = [];
 
             for (const id of selected) {

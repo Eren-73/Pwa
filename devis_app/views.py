@@ -505,6 +505,7 @@ def liste_clients(request):
         'clients': clients,
         'q': query,
         'can_view_global': _can_view_global(request.user),
+        'can_delete_clients': _is_admin_user(request.user),
     })
 
 
