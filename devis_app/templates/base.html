@@ -137,6 +137,86 @@
         .sidebar .text-muted {
             color: rgba(255,255,255,0.45) !important;
         }
+
+        /* Base responsive behavior shared by all pages */
+        body {
+            overflow-x: hidden;
+        }
+
+        .content {
+            min-width: 0;
+            width: 100%;
+            padding: 1rem;
+        }
+
+        .mobile-sidebar {
+            position: fixed;
+            top: 0;
+            right: -340px;
+            width: min(86vw, 320px);
+            max-width: 100%;
+            height: 100vh;
+            z-index: 1061;
+            overflow-y: auto;
+            transition: right 0.25s ease;
+        }
+
+        .mobile-sidebar.active {
+            right: 0;
+        }
+
+        .mobile-sidebar-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.45);
+            z-index: 1060;
+        }
+
+        @media (max-width: 991.98px) {
+            .content {
+                padding: 4.75rem 0.75rem 1rem;
+            }
+
+            .container,
+            .container-fluid {
+                padding-left: 0.5rem;
+                padding-right: 0.5rem;
+            }
+        }
+
+        @media (max-width: 767.98px) {
+            .btn {
+                white-space: normal;
+            }
+
+            .card,
+            .modal-content {
+                border-radius: 12px;
+            }
+
+            .table {
+                font-size: 0.9rem;
+            }
+
+            table {
+                display: block;
+                width: 100%;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            table th,
+            table td {
+                white-space: nowrap;
+            }
+
+            .form-control,
+            .form-select,
+            .btn {
+                min-height: 42px;
+            }
+        }
     </style>
     
     <!-- Apply theme IMMEDIATELY -->
