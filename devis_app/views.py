@@ -28,6 +28,7 @@ import io
 from urllib.parse import quote
 from collections import defaultdict
 from django.core.mail import EmailMessage
+from django.views.decorators.csrf import ensure_csrf_cookie
 
 
 def _get_profile(user):
@@ -1590,6 +1591,7 @@ def regenerate_qr_codes_view(request):
     })
 
 
+@ensure_csrf_cookie
 def custom_login(request):
     """Vue de connexion avec redirection selon le rôle."""
     if request.user.is_authenticated:
