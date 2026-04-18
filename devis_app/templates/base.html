@@ -71,8 +71,13 @@
             top: 0;
             height: 100vh;
             transition: box-shadow 0.2s;
-            display: flex !important;
-            flex-direction: column !important;
+        }
+
+        @media (min-width: 992px) {
+            .sidebar {
+                display: flex !important;
+                flex-direction: column !important;
+            }
         }
         .sidebar a {
             color: rgba(255,255,255,0.85) !important;
